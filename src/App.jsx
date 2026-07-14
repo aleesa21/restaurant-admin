@@ -12,9 +12,11 @@ const router = createBrowserRouter([
   },
   {
     path: "/admin/dashboard",
-    element:<ProtectedRoute> 
-      <AdminDashboard />
-    </ProtectedRoute> ,
+    element: (
+      <ProtectedRoute>
+        <AdminDashboard />
+      </ProtectedRoute>
+    ),
   },
 ]);
 
