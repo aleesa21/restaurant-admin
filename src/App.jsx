@@ -4,11 +4,12 @@ import { RouterProvider } from "react-router/dom";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 import AuthProvider from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Login from "./pages/Login";
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <div>Hello World</div>,
+    element: <Login />,
   },
   {
     path: "/admin/dashboard",
