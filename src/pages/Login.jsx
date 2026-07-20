@@ -1,17 +1,41 @@
 import React, { useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router";
+import { supabase } from "../supabaseClient";
 
 function Login() {
-  const [formvalues, setFormvalues] = useState({ username: "", password: "" });
+  const [formvalues, setFormvalues] = useState({ email: "", password: "" });
   const [formerrors, setFormerrors] = useState({
-    e_username: "",
+    e_email: "",
     e_password: "",
   });
+  const [apiError, setApiError] = useState("");
+  const { setUser } = useAuth();
+  const navigate = useNavigate();
+
+  async function handleLogin(email, password) {
+    setApiError("");
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      if (error) {
+        setApiError(error.message);
+        return;
+      }
+      navigate("/admin/dashboard");
+    } catch (err) {
+      setApiError("An unexpected error occurred. Please try again.");
+    }
+  }
 
   function validate(e) {
     e.preventDefault();
     let errors = {};
-    if (!formvalues.username) {
-      errors.e_username = "Username is required";
+    if (!formvalues.email) {
+      errors.e_email = "Email is required";
     }
     if (!formvalues.password) {
       errors.e_password = "Password is required";
@@ -19,7 +43,7 @@ function Login() {
     setFormerrors(errors);
 
     if (Object.keys(errors).length === 0) {
-      console.log("Form is valid! Proceeding...", formvalues);
+      handleLogin(formvalues.email, formvalues.password);
     } else {
       console.log("Form has errors, stopping submission.");
     }
@@ -48,35 +72,40 @@ function Login() {
               </p>
             </div>
 
+            {apiError && (
+              <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 px-4 py-3 rounded-xl text-xs font-medium text-center animate-fadeIn">
+                {apiError}
+              </div>
+            )}
             <div className="flex flex-col gap-2 text-left">
               <label
-                htmlFor="username"
+                htmlFor="email"
                 className="text-[#d4a574] text-[11px] font-bold uppercase tracking-widest opacity-90"
               >
-                Username
+                Email
               </label>
               <input
-                type="text"
-                placeholder="Enter your username"
-                name="username"
-                id="username"
+                type="email"
+                placeholder="Enter your email"
+                name="email"
+                id="email"
                 onChange={(e) => {
                   setFormvalues((prev) => ({
                     ...prev,
-                    username: e.target.value,
+                    email: e.target.value,
                   }));
-                  if (formerrors.e_username)
-                    setFormerrors((prev) => ({ ...prev, e_username: "" }));
+                  if (formerrors.e_email)
+                    setFormerrors((prev) => ({ ...prev, e_email: "" }));
                 }}
                 className={`bg-black/20 border rounded-xl text-[#f5e9dc] placeholder-[#f5e9dc]/30 px-4 py-3 text-sm outline-none transition-all duration-200 ${
-                  formerrors.e_username
+                  formerrors.e_email
                     ? "border-rose-500/50 focus:border-rose-400 focus:ring-1 focus:ring-rose-400"
                     : "border-white/10 focus:border-[#d4a574] focus:ring-1 focus:ring-[#d4a574]"
                 }`}
               />
-              {formerrors.e_username && (
+              {formerrors.e_email && (
                 <div className="text-rose-400/90 text-xs font-medium tracking-wide pl-1 animate-fadeIn">
-                  {formerrors.e_username}
+                  {formerrors.e_email}
                 </div>
               )}
             </div>
