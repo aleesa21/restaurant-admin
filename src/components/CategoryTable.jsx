@@ -324,7 +324,7 @@ function CategoryTable() {
         return {
           ...item,
           variants: item.variants.map((v) =>
-            v.variant_id === variantId ? { ...v, [field]: value } : v,
+            v.id === variantId ? { ...v, [field]: value } : v,
           ),
         };
       }),
@@ -337,12 +337,11 @@ function CategoryTable() {
         (v) => v.id === variantId,
       );
 
-      const finalValue =
-        field === "price" || field === "sort_order" ? Number(value) : value;
+      const finalValue = field === "price" ? Number(value) : value;
 
       // BETTER WAY: Check if the variant existed in the original fetched data
       const isNewVariant = !fetcheddata.some((origItem) =>
-        origItem.variants?.some((origVar) => origVar.variant_id === variantId),
+        origItem.variants?.some((origVar) => origVar.id === variantId),
       );
 
       if (existingChangeIdx > -1) {
@@ -364,7 +363,7 @@ function CategoryTable() {
   //add variant
   const addVariant = (itemId) => {
     const newVarId = crypto.randomUUID();
-    const newVariant = { variant_id: newVarId, label: "", price: "" };
+    const newVariant = { id: newVarId, label: "", price: "" };
 
     // Update UI State
     setMenuItems((prev) =>
@@ -387,7 +386,6 @@ function CategoryTable() {
           label: "",
           price: 0,
           is_default: false,
-          sort_order: 1,
         },
       ],
     }));
@@ -400,7 +398,7 @@ function CategoryTable() {
         if (item.item_id !== itemId) return item;
         return {
           ...item,
-          variants: item.variants.filter((v) => v.variant_id !== variantId),
+          variants: item.variants.filter((v) => v.id !== variantId),
         };
       }),
     );
@@ -409,7 +407,7 @@ function CategoryTable() {
     setPendingChanges((prev) => {
       // Check if the variant existed in the original fetched data
       const isNewVariant = !fetcheddata.some((origItem) =>
-        origItem.variants?.some((origVar) => origVar.variant_id === variantId),
+        origItem.variants?.some((origVar) => origVar.id === variantId),
       );
 
       // Clean up any pending unsaved logs (inserts/updates) for this specific variant
@@ -870,7 +868,7 @@ function CategoryTable() {
                                         </div>
                                         {item.variants.map((v) => (
                                           <div
-                                            key={v.variant_id}
+                                            key={v.id}
                                             className="flex gap-2 mb-2"
                                           >
                                             <input
@@ -881,7 +879,7 @@ function CategoryTable() {
                                               onChange={(e) =>
                                                 handleVariantChange(
                                                   item.item_id,
-                                                  v.variant_id,
+                                                  v.id,
                                                   "label",
                                                   e.target.value,
                                                 )
@@ -895,7 +893,7 @@ function CategoryTable() {
                                               onChange={(e) =>
                                                 handleVariantChange(
                                                   item.item_id,
-                                                  v.variant_id,
+                                                  v.id,
                                                   "price",
                                                   e.target.value,
                                                 )
@@ -907,7 +905,7 @@ function CategoryTable() {
                                               onClick={() =>
                                                 deleteVariant(
                                                   item.item_id,
-                                                  v.variant_id,
+                                                  v.id,
                                                   "price",
                                                 )
                                               }
