@@ -58,11 +58,13 @@ function CategoryTable() {
         ]),
       ).values(),
     ];
-    const items = data.map((item) => {
-      const { category, ...rest } = item;
+    const items = data
+      .filter((i) => i?.item_id != null)
+      .map((item) => {
+        const { category, ...rest } = item;
 
-      return rest;
-    });
+        return rest;
+      });
     setCategories(categories);
     setMenuItems(items);
   };
