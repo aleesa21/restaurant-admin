@@ -42,7 +42,7 @@ function Login() {
               <h1 className="font-serif text-3xl text-[#f5e9dc] tracking-wide font-medium">
                 Welcome back
               </h1>
-              <div className="w-10 h-0.5 bg-[#c48649] mt-3 mb-2 rounded-full" />
+              <div className="w-10 h-0.5 bg-[#e3a05d] mt-3 mb-2 rounded-full" />
               <p className="text-[#d4a574]/90 text-sm font-medium tracking-wide">
                 Sign in to manage your café
               </p>
