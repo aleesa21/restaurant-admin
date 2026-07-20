@@ -76,7 +76,7 @@ function Login() {
               />
               {formerrors.e_username && (
                 <div className="text-rose-400/90 text-xs font-medium tracking-wide pl-1 animate-fadeIn">
-                  ⚠️ {formerrors.e_username}
+                  {formerrors.e_username}
                 </div>
               )}
             </div>
@@ -109,7 +109,7 @@ function Login() {
               />
               {formerrors.e_password && (
                 <div className="text-rose-400/90 text-xs font-medium tracking-wide pl-1 animate-fadeIn">
-                  ⚠️ {formerrors.e_password}
+                  {formerrors.e_password}
                 </div>
               )}
             </div>

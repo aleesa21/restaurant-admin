@@ -567,7 +567,7 @@ function CategoryTable() {
     const newErrors = {};
     const errorMessages = [];
 
-    // Validate Category Names
+    // 1. Validate Category Names
     const catMap = {};
     categories.forEach((cat) => {
       const trimmed = cat.category ? cat.category.trim().toLowerCase() : "";
@@ -585,7 +585,7 @@ function CategoryTable() {
       }
     });
 
-    //  Validate Menu Items
+    // 2. Validate Menu Items & Nested Arrays
     menuItems.forEach((item) => {
       // Check Empty Name
       if (!item.item_name || !item.item_name.trim()) {
@@ -614,9 +614,62 @@ function CategoryTable() {
           `Please upload an image for "${item.item_name || "Item"}".`,
         );
       }
+
+      // Check Nested Variants
+      if (item.variants && item.variants.length > 0) {
+        item.variants.forEach((v) => {
+          // Variant Label Check
+          if (!v.label || !v.label.trim()) {
+            newErrors[`variant-label-${v.id}`] = true;
+            errorMessages.push(
+              `Variant label cannot be empty in "${item.item_name || "Item"}".`,
+            );
+          }
+
+          // Variant Price Check
+          const varPrice = Number(v.price);
+          if (
+            v.price === "" ||
+            v.price === null ||
+            isNaN(varPrice) ||
+            varPrice < 0
+          ) {
+            newErrors[`variant-price-${v.id}`] = true;
+            errorMessages.push(
+              `Variant price for "${v.label || "Variant"}" must be a valid number.`,
+            );
+          }
+        });
+      }
+
+      // Check Nested Addons
+      if (item.addons && item.addons.length > 0) {
+        item.addons.forEach((a) => {
+          // Addon Name Check
+          if (!a.name || !a.name.trim()) {
+            newErrors[`addon-name-${a.id}`] = true;
+            errorMessages.push(
+              `Addon name cannot be empty in "${item.item_name || "Item"}".`,
+            );
+          }
+
+          // Addon Price Check
+          const addonPrice = Number(a.price);
+          if (
+            a.price === "" ||
+            a.price === null ||
+            isNaN(addonPrice) ||
+            addonPrice < 0
+          ) {
+            newErrors[`addon-price-${a.id}`] = true;
+            errorMessages.push(
+              `Addon price for "${a.name || "Addon"}" must be a valid number.`,
+            );
+          }
+        });
+      }
     });
 
-    // Stop execution and show popup if validation failed
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       const uniqueMessages = [...new Set(errorMessages)];
@@ -636,9 +689,6 @@ function CategoryTable() {
     };
 
     try {
-      // 1. Try to authenticate
-
-      // 2. If login succeeds, proceed to save
       let { data, error } = await supabase.rpc("save_menu_batch", {
         payload: payload,
       });
@@ -647,10 +697,9 @@ function CategoryTable() {
         const errbody = await error.context.json();
         console.log(errbody);
         return;
-        // throw error;
       }
 
-      // 3. Clear pending changes on success
+      // Clear pending changes on success
       setPendingChanges({
         categories: [],
         menu_items: [],
@@ -662,40 +711,10 @@ function CategoryTable() {
       await fetchMenuData();
       showAlert("Success", "Changes published successfully!");
     } catch (err) {
-      // 4. Catch both login failures and database failures here
       console.error("Failed to save:", err);
       showAlert("Error", err.message || "Something went wrong while saving.");
     }
   };
-
-  // const handleSave = async () => {
-  //   const payload = {
-  //     categories: pendingChanges.categories,
-  //     menu_items: pendingChanges.menu_items,
-  //     item_variants: pendingChanges.item_variants,
-  //     addons: pendingChanges.addons,
-  //     item_addons: pendingChanges.item_addons,
-  //   };
-  //   await login();
-  //   let { data, error } = await supabase.rpc("save_menu_batch", {
-  //     payload: payload,
-  //   });
-  //   if (error){
-  //     console.log("error");
-  //     throw error;
-  //   }
-
-  //   setPendingChanges({
-  //     categories: [],
-  //     menu_items: [],
-  //     item_variants: [],
-  //     addons: [],
-  //     item_addons: [],
-  //   });
-
-  //   fetchMenuData();
-  //   console.log("Payload ready to send directly:", payload);
-  // };
 
   const handleRevert = async () => {
     const { data, error } = await supabase.rpc("restore_from_backup");
@@ -710,7 +729,7 @@ function CategoryTable() {
 
   return (
     <section
-      className="admin-dash flex justify-center w-full min-h-screen font-sans antialiased text-[#EFE6DA]"
+      className="admin-dash relative flex justify-center w-full min-h-screen font-sans antialiased text-[#EFE6DA]"
       style={{
         background:
           "repeating-linear-gradient(135deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 2px, transparent 2px, transparent 6px), #120D09",
@@ -718,7 +737,7 @@ function CategoryTable() {
     >
       <div className="w-full max-w-5xl">
         <div className="w-full p-5">
-          <div className="menu-header bg-[#18110C]/90 backdrop-blur-xl rounded-lg p-6 flex justify-between items-center flex-wrap gap-4 border border-[#B8874F]/30 shadow-[0_8px_32px_0_rgba(8,5,3,0.5)]">
+          <div className="menu-header  bg-[#18110C]/90 backdrop-blur-xl rounded-lg p-6 flex justify-between items-center flex-wrap gap-4 border border-[#B8874F]/30 shadow-[0_8px_32px_0_rgba(8,5,3,0.5)]">
             <div>
               <h1 className="font-serif font-bold text-2xl capitalize text-[#EFE6DA] tracking-wide">
                 Menu Dashboard
@@ -978,30 +997,46 @@ function CategoryTable() {
                                             <input
                                               type="text"
                                               placeholder="Label (e.g., Large)"
-                                              className="bg-[#1C1410] text-[#EFE6DA] placeholder-[#8C7A6B] p-2 rounded text-xs w-1/2 border border-[#B8874F]/25 focus:outline-none focus:border-[#B8874F]"
+                                              className={`bg-[#1C1410] text-[#EFE6DA] placeholder-[#8C7A6B] p-2 rounded text-xs w-1/2 border focus:outline-none transition-colors ${
+                                                errors[`variant-label-${v.id}`]
+                                                  ? "border-red-500 bg-red-950/30"
+                                                  : "border-[#B8874F]/25 focus:border-[#B8874F]"
+                                              }`}
                                               value={v.label}
-                                              onChange={(e) =>
+                                              onChange={(e) => {
                                                 handleVariantChange(
                                                   item.item_id,
                                                   v.id,
                                                   "label",
                                                   e.target.value,
-                                                )
-                                              }
+                                                );
+                                                setErrors((prev) => ({
+                                                  ...prev,
+                                                  [`variant-label-${v.id}`]: false,
+                                                }));
+                                              }}
                                             />
                                             <input
                                               type="text"
                                               placeholder="Price"
-                                              className="bg-[#1C1410] text-[#EFE6DA] placeholder-[#8C7A6B] p-2 rounded text-xs w-1/2 border border-[#B8874F]/25 focus:outline-none focus:border-[#B8874F]"
+                                              className={`bg-[#1C1410] text-[#EFE6DA] placeholder-[#8C7A6B] p-2 rounded text-xs w-1/2 border focus:outline-none transition-colors ${
+                                                errors[`variant-price-${v.id}`]
+                                                  ? "border-red-500 bg-red-950/30 text-red-300"
+                                                  : "border-[#B8874F]/25 focus:border-[#B8874F]"
+                                              }`}
                                               value={v.price}
-                                              onChange={(e) =>
+                                              onChange={(e) => {
                                                 handleVariantChange(
                                                   item.item_id,
                                                   v.id,
                                                   "price",
                                                   e.target.value,
-                                                )
-                                              }
+                                                );
+                                                setErrors((prev) => ({
+                                                  ...prev,
+                                                  [`variant-price-${v.id}`]: false,
+                                                }));
+                                              }}
                                             />
                                             <button
                                               type="button"
@@ -1061,30 +1096,50 @@ function CategoryTable() {
                                               <input
                                                 type="text"
                                                 placeholder="Name (e.g., Vanilla)"
-                                                className="bg-[#1C1410] text-[#EFE6DA] placeholder-[#8C7A6B] p-2 rounded text-xs w-1/2 border border-[#B8874F]/25 focus:outline-none focus:border-[#B8874F]"
+                                                className={`bg-[#1C1410] text-[#EFE6DA] placeholder-[#8C7A6B] p-2 rounded text-xs w-1/2 border focus:outline-none transition-colors ${
+                                                  errors[
+                                                    `addon-name-${addon.id}`
+                                                  ]
+                                                    ? "border-red-500 bg-red-950/30"
+                                                    : "border-[#B8874F]/25 focus:border-[#B8874F]"
+                                                }`}
                                                 value={addon.name || ""}
-                                                onChange={(e) =>
+                                                onChange={(e) => {
                                                   handleAddonChange(
                                                     item.item_id,
                                                     addon.id,
                                                     "name",
                                                     e.target.value,
-                                                  )
-                                                }
+                                                  );
+                                                  setErrors((prev) => ({
+                                                    ...prev,
+                                                    [`addon-name-${addon.id}`]: false,
+                                                  }));
+                                                }}
                                               />
                                               <input
                                                 type="text"
                                                 placeholder="Price"
-                                                className="bg-[#1C1410] text-[#EFE6DA] placeholder-[#8C7A6B] p-2 rounded text-xs w-1/2 border border-[#B8874F]/25 focus:outline-none focus:border-[#B8874F]"
+                                                className={`bg-[#1C1410] text-[#EFE6DA] placeholder-[#8C7A6B] p-2 rounded text-xs w-1/2 border focus:outline-none transition-colors ${
+                                                  errors[
+                                                    `addon-price-${addon.id}`
+                                                  ]
+                                                    ? "border-red-500 bg-red-950/30 text-red-300"
+                                                    : "border-[#B8874F]/25 focus:border-[#B8874F]"
+                                                }`}
                                                 value={addon.price || ""}
-                                                onChange={(e) =>
+                                                onChange={(e) => {
                                                   handleAddonChange(
                                                     item.item_id,
                                                     addon.id,
                                                     "price",
                                                     e.target.value,
-                                                  )
-                                                }
+                                                  );
+                                                  setErrors((prev) => ({
+                                                    ...prev,
+                                                    [`addon-price-${addon.id}`]: false,
+                                                  }));
+                                                }}
                                               />
                                               <button
                                                 type="button"
