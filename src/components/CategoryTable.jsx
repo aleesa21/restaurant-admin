@@ -31,6 +31,12 @@ function CategoryTable() {
   const [menuItems, setMenuItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [expandedItemId, setExpandedItemId] = useState(null);
+  const [errors, setErrors] = useState({});
+  const [modal, setModal] = useState({ isOpen: false, title: "", message: "" });
+
+  const showAlert = (title, message) => {
+    setModal({ isOpen: true, title, message });
+  };
 
   //trackingchanges tosendto backend
   const [pendingChanges, setPendingChanges] = useState({
@@ -268,6 +274,15 @@ function CategoryTable() {
     const file = e.target.files[0];
     console.log(file);
     if (!file) return;
+
+    const MAX_SIZE = 1024 * 1024; // 1MB
+    if (file.size > MAX_SIZE) {
+      showAlert("Image Too Large", "Image file size must be less than 1MB.");
+      e.target.value = "";
+      return;
+    }
+    //clearing img-border:
+    setErrors((prev) => ({ ...prev, [`item-image-${imgitm.item_id}`]: false }));
 
     const { imgdata, imgerror } = await supabase.storage
       .from("menu-images")
@@ -549,6 +564,69 @@ function CategoryTable() {
 
   //backend lai pathunedata:
   const handleSave = async () => {
+    const newErrors = {};
+    const errorMessages = [];
+
+    // Validate Category Names
+    const catMap = {};
+    categories.forEach((cat) => {
+      const trimmed = cat.category ? cat.category.trim().toLowerCase() : "";
+
+      if (!trimmed) {
+        newErrors[`cat-${cat.category_id}`] = true;
+        errorMessages.push("Category name cannot be empty.");
+      } else if (catMap[trimmed]) {
+        // Highlight BOTH duplicate categories in red
+        newErrors[`cat-${cat.category_id}`] = true;
+        newErrors[`cat-${catMap[trimmed]}`] = true;
+        errorMessages.push(`Duplicate category name found: "${cat.category}".`);
+      } else {
+        catMap[trimmed] = cat.category_id;
+      }
+    });
+
+    //  Validate Menu Items
+    menuItems.forEach((item) => {
+      // Check Empty Name
+      if (!item.item_name || !item.item_name.trim()) {
+        newErrors[`item-name-${item.item_id}`] = true;
+        errorMessages.push("Item name cannot be empty.");
+      }
+
+      // Check Base Price (Must be numeric and >= 0)
+      const priceNum = Number(item.base_price);
+      if (
+        item.base_price === "" ||
+        item.base_price === null ||
+        isNaN(priceNum) ||
+        priceNum < 0
+      ) {
+        newErrors[`item-price-${item.item_id}`] = true;
+        errorMessages.push(
+          `Price for "${item.item_name || "Item"}" must be a valid number.`,
+        );
+      }
+
+      // Check Missing Image
+      if (!item.image_path) {
+        newErrors[`item-image-${item.item_id}`] = true;
+        errorMessages.push(
+          `Please upload an image for "${item.item_name || "Item"}".`,
+        );
+      }
+    });
+
+    // Stop execution and show popup if validation failed
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      const uniqueMessages = [...new Set(errorMessages)];
+      showAlert("Validation Error", `• ${uniqueMessages.join("\n• ")}`);
+      return;
+    }
+
+    // Clear errors if all checks pass
+    setErrors({});
+
     const payload = {
       categories: pendingChanges.categories,
       menu_items: pendingChanges.menu_items,
@@ -582,13 +660,11 @@ function CategoryTable() {
       });
 
       await fetchMenuData();
-      alert("Changes published successfully!");
+      showAlert("Success", "Changes published successfully!");
     } catch (err) {
       // 4. Catch both login failures and database failures here
       console.error("Failed to save:", err);
-      alert(
-        `Error: ${err.message || "Authentication failed. Check your password."}`,
-      );
+      showAlert("Error", err.message || "Something went wrong while saving.");
     }
   };
 
@@ -687,10 +763,18 @@ function CategoryTable() {
                       id=""
                       value={c.category}
                       placeholder="category"
-                      className="font-serif font-bold text-lg text-[#EFE6DA] focus:outline-none bg-transparent py-1 px-2 flex-1 max-w-xs rounded-md focus:bg-white/[0.03] transition-colors"
-                      onChange={(e) =>
-                        handleCategoryChange(c.category_id, e.target.value)
-                      }
+                      className={`font-serif font-bold text-lg focus:outline-none bg-transparent py-1 px-2 flex-1 max-w-xs rounded-md transition-colors ${
+                        errors[`cat-${c.category_id}`]
+                          ? "text-red-400 border border-red-500 bg-red-950/20"
+                          : "text-[#EFE6DA] focus:bg-white/3"
+                      }`}
+                      onChange={(e) => {
+                        handleCategoryChange(c.category_id, e.target.value);
+                        setErrors((prev) => ({
+                          ...prev,
+                          [`cat-${c.category_id}`]: false,
+                        }));
+                      }}
                     />
                     <div className="flex gap-3 items-center">
                       <div
@@ -736,11 +820,15 @@ function CategoryTable() {
                             <React.Fragment key={item.item_id}>
                               <tr
                                 key={item.item_id}
-                                className="hover:bg-[#B8874F]/[0.06] transition-colors"
+                                className="hover:bg-[#B8874F]/6 transition-colors"
                               >
                                 <td className="py-3 border-t border-[#B8874F]/15">
                                   <label
-                                    className={`w-10 h-10 rounded-lg bg-[#1C1410] border border-dashed border-[#B8874F]/30 flex items-center justify-center text-[#B8874F]/60 text-[10px] cursor-pointer hover:bg-[#B8874F]/10 hover:border-[#B8874F]/60 transition-colors overflow-hidden ${!item.is_available ? "opacity-40 line-through" : ""}`}
+                                    className={`w-10 h-10 rounded-lg bg-[#1C1410] border border-dashed flex items-center justify-center text-[#B8874F]/60 text-[10px] cursor-pointer hover:bg-[#B8874F]/10 transition-colors overflow-hidden ${
+                                      errors[`item-image-${item.item_id}`]
+                                        ? "border-red-500 bg-red-950/30"
+                                        : "border-[#B8874F]/30 hover:border-[#B8874F]/60"
+                                    } ${!item.is_available ? "opacity-40 line-through" : ""}`}
                                   >
                                     <input
                                       type="file"
@@ -770,15 +858,23 @@ function CategoryTable() {
                                   <input
                                     type="text"
                                     placeholder="name"
-                                    className={`bg-transparent text-[#EFE6DA] border-b border-transparent focus:border-[#B8874F] focus:outline-none py-1 px-1 text-sm w-[90%] rounded ${!item.is_available ? "opacity-40 line-through text-[#8C7A6B]" : ""}`}
+                                    className={`bg-transparent text-[#EFE6DA] border-b focus:outline-none py-1 px-1 text-sm w-[90%] rounded transition-colors ${
+                                      errors[`item-name-${item.item_id}`]
+                                        ? "border-red-500 bg-red-950/20"
+                                        : "border-transparent focus:border-[#B8874F]"
+                                    } ${!item.is_available ? "opacity-40 line-through text-[#8C7A6B]" : ""}`}
                                     value={item.item_name}
-                                    onChange={(e) =>
+                                    onChange={(e) => {
                                       handleChange(
                                         item.item_id,
                                         "item_name",
                                         e.target.value,
-                                      )
-                                    }
+                                      );
+                                      setErrors((prev) => ({
+                                        ...prev,
+                                        [`item-name-${item.item_id}`]: false,
+                                      }));
+                                    }}
                                   />
                                 </td>
 
@@ -787,14 +883,22 @@ function CategoryTable() {
                                     type="text"
                                     placeholder="price"
                                     value={item.base_price}
-                                    className={`bg-transparent text-[#EFE6DA] border-b border-transparent focus:border-[#B8874F] focus:outline-none py-1 px-1 text-sm font-medium w-75%  ${!item.is_available ? "opacity-40 line-through text-[#8C7A6B]" : ""}`}
-                                    onChange={(e) =>
+                                    className={`bg-transparent text-[#EFE6DA] border-b focus:outline-none py-1 px-1 text-sm font-medium w-75% transition-colors ${
+                                      errors[`item-price-${item.item_id}`]
+                                        ? "border-red-500 bg-red-950/20 text-red-300"
+                                        : "border-transparent focus:border-[#B8874F]"
+                                    } ${!item.is_available ? "opacity-40 line-through text-[#8C7A6B]" : ""}`}
+                                    onChange={(e) => {
                                       handleChange(
                                         item.item_id,
                                         "base_price",
                                         e.target.value,
-                                      )
-                                    }
+                                      );
+                                      setErrors((prev) => ({
+                                        ...prev,
+                                        [`item-price-${item.item_id}`]: false,
+                                      }));
+                                    }}
                                   />
                                 </td>
 
@@ -1046,6 +1150,28 @@ function CategoryTable() {
           </div>
         </div>
       </div>
+      {modal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-[#18110C] border border-[#B8874F]/40 rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.8)] p-6 max-w-md w-full">
+            <h3 className="font-serif font-bold text-xl text-[#EFE6DA] mb-3">
+              {modal.title}
+            </h3>
+            <p className="text-sm text-[#B8874F]/85 whitespace-pre-line leading-relaxed mb-6">
+              {modal.message}
+            </p>
+            <div className="flex justify-end">
+              <button
+                onClick={() =>
+                  setModal({ isOpen: false, title: "", message: "" })
+                }
+                className="bg-[#B8874F] hover:bg-[#CE9A5E] text-[#12100D] font-bold px-5 py-2 rounded-xl text-sm transition-colors cursor-pointer uppercase tracking-wider"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
