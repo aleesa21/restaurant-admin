@@ -8,11 +8,11 @@ function ProtectedRoute({ children }) {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#120D09] flex items-center justify-center text-[#B8874F]">
-        Loading session..... 
+        Loading info.....
       </div>
     );
   }
-    
+
   if (!user) {
     return <Navigate to="/" replace />;
   }

@@ -2,10 +2,12 @@ import React, { useState } from "react";
 import { RotateCcw, Save, LogOut, UsersRound } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router";
+import ManageUsersModal from "./ManageUsersModal";
 
 function AdminHeader({ handleRevert, handleSave, addCategory }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, isSuperAdmin, logout } = useAuth();
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const navigate = useNavigate();
 
   const userEmail = user?.email || "";
@@ -25,7 +27,7 @@ function AdminHeader({ handleRevert, handleSave, addCategory }) {
           "repeating-linear-gradient(135deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 2px, transparent 2px, transparent 6px), #120D09",
       }}
     >
-      <header className="menu-header w-full mb-2 sticky top-0 z-100  bg-[#18110C]/90 backdrop-blur-xl rounded-lg p-6 flex justify-between items-center flex-wrap gap-4 border border-[#B8874F]/30 shadow-[0_8px_32px_0_rgba(8,5,3,0.5)]">
+      <header className="menu-header w-full mb-2  bg-[#18110C]/90 backdrop-blur-xl rounded-lg p-6 flex justify-between items-center flex-wrap gap-4 border border-[#B8874F]/30 shadow-[0_8px_32px_0_rgba(8,5,3,0.5)]">
         <div>
           <h1 className="font-serif font-bold text-2xl capitalize text-[#EFE6DA] tracking-wide">
             Menu Dashboard
@@ -63,7 +65,7 @@ function AdminHeader({ handleRevert, handleSave, addCategory }) {
               onClick={() => setIsProfileOpen(!isProfileOpen)}
               className="w-10 h-10 rounded-full bg-[#B8874F] text-[#120D09] font-bold text-sm flex items-center justify-center border-2 border-[#B8874F]/50 hover:scale-105 transition-transform focus:outline-none shadow-md"
             >
-             {avatarInitials}
+              {avatarInitials}
             </button>
 
             {isProfileOpen && (
@@ -77,15 +79,19 @@ function AdminHeader({ handleRevert, handleSave, addCategory }) {
                   </p>
                 </div>
 
-                <button
-                  onClick={() => {
-                    setIsProfileOpen(false);
-                  }}
-                  className="w-full text-left px-3 py-2 text-sm text-[#EFE6DA]/80 hover:text-[#EFE6DA] hover:bg-[#B8874F]/20 rounded-lg flex items-center gap-2.5 transition-colors"
-                >
-                  <UsersRound size={13} />
-                  Manage Users
-                </button>
+                {isSuperAdmin && (
+                  <button
+                    onClick={() => {
+                      setIsProfileOpen(false);
+                      setIsUserModalOpen(true);
+                      //manage user modal
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-[#EFE6DA]/80 hover:text-[#EFE6DA] hover:bg-[#B8874F]/20 rounded-lg flex items-center gap-2.5 transition-colors"
+                  >
+                    <UsersRound size={13} />
+                    Manage Users
+                  </button>
+                )}
 
                 <div className="h-px bg-[#B8874F]/20 my-1" />
 
@@ -101,6 +107,10 @@ function AdminHeader({ handleRevert, handleSave, addCategory }) {
           </div>
         </div>
       </header>
+      <ManageUsersModal
+        isOpen={isUserModalOpen}
+        onClose={() => setIsUserModalOpen(false)}
+      />
     </div>
   );
 }
