@@ -2,9 +2,10 @@ import React from "react";
 import { createBrowserRouter } from "react-router";
 import { RouterProvider } from "react-router/dom";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
-import AuthProvider from "./context/AuthContext";
-import ProtectedRoute from "./components/ProtectedRoute";
+import { AuthProvider } from "./context/AuthContext";
 import Login from "./pages/Login";
+import ProtectedRoute from "./components/ProtectedRoute";
+import PageNotFound from "./components/pagenotfound";
 
 const router = createBrowserRouter([
   {
@@ -16,9 +17,13 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <AdminDashboard />
-      </ProtectedRoute>
+        </ProtectedRoute>
     ),
   },
+  {
+    path:"*",
+    element:<PageNotFound />
+  }
 ]);
 
 function App() {

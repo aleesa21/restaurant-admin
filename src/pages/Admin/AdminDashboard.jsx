@@ -1,8 +1,7 @@
-import { RotateCcw, Save } from "lucide-react";
-
 import React, { useEffect, useState } from "react";
 import { Trash, Eye, EyeOff, ChevronUp, ChevronDown } from "lucide-react";
 import { supabase } from "../../supabaseClient";
+import AdminHeader from "../../components/AdminHeader";
 
 let fetcheddata = [];
 function editMenu(payload) {}
@@ -711,45 +710,16 @@ function AdminDashboard() {
 
   return (
     <section
-      className="admin-dash relative flex justify-center w-full min-h-screen font-sans antialiased text-[#EFE6DA]"
+      className="admin-dash  relative flex justify-center w-full min-h-screen font-sans antialiased text-[#EFE6DA]"
       style={{
         background:
           "repeating-linear-gradient(135deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 2px, transparent 2px, transparent 6px), #120D09",
       }}
     >
-      <div className="w-full max-w-5xl">
-        <div className="w-full p-5">
-          <div className="menu-header  bg-[#18110C]/90 backdrop-blur-xl rounded-lg p-6 flex justify-between items-center flex-wrap gap-4 border border-[#B8874F]/30 shadow-[0_8px_32px_0_rgba(8,5,3,0.5)]">
-            <div>
-              <h1 className="font-serif font-bold text-2xl capitalize text-[#EFE6DA] tracking-wide">
-                Menu Dashboard
-              </h1>
-              <p className="text-xs font-medium text-[#B8874F]/75 mt-1 tracking-wider uppercase">
-                Last published 2 hours ago
-              </p>
-            </div>
+      <div className="w-full p-1  flex flex-col items-center ">
+        <AdminHeader handleRevert={handleRevert} handleSave={handleSave} addCategory={addCategory} />
 
-            <div className="m-h-btns flex gap-3">
-              <button
-                onClick={handleRevert}
-                className="flex items-center cursor-pointer gap-2 border border-[#B8874F]/30 bg-white/[0.02] px-4 py-2 rounded-md text-sm font-medium text-[#EFE6DA] hover:bg-[#B8874F]/10 transition-colors"
-              >
-                <RotateCcw size={16} />
-                Revert
-              </button>
-
-              <button
-                onClick={handleSave}
-                className="flex items-center cursor-pointer gap-2 bg-[#B8874F] hover:bg-[#CE9A5E] px-5 py-2 rounded-md text-sm font-bold text-[#12100D] shadow-md transition-colors tracking-wide uppercase"
-              >
-                <Save size={16} />
-                Publish changes
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="w-full max-w-5xl p-5 flex flex-col gap-6">
+        <div className="table-content w-full max-w-5xl   p-5 flex flex-col gap-6">
           <div>
             {categories.map((c) => {
               return (
@@ -1169,21 +1139,6 @@ function AdminDashboard() {
                 </div>
               );
             })}
-
-            <div className="flex gap-4 mt-6">
-              <div
-                className="bg-transparent border border-[#B8874F]/40 hover:bg-[#B8874F]/10 text-[#B8874F] px-5 py-2.5 rounded-xl text-sm font-semibold tracking-wide capitalize cursor-pointer transition-colors flex items-center justify-center"
-                onClick={addCategory}
-              >
-                add category
-              </div>
-              {/* <button
-                onClick={handleSave}
-                className="bg-[#B8874F] hover:bg-[#CE9A5E] text-[#12100D] px-6 py-2.5 rounded-xl text-sm font-semibold tracking-wide capitalize shadow-sm transition-colors cursor-pointer"
-              >
-                save
-              </button> */}
-            </div>
           </div>
         </div>
       </div>

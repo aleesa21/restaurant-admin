@@ -1,23 +1,19 @@
-// src/components/ProtectedRoute.jsx
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Navigate } from "react-router";
-import { supabase } from "../supabaseClient";
+import { useAuth } from "../context/AuthContext";
 
 function ProtectedRoute({ children }) {
-  const [session, setSession] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuth();
 
-  useEffect(() => {
-    // Read session directly from Supabase
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
-  }, []);
-
-  if (loading) return <div>Loading...</div>;
-
-  if (!session) {
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#120D09] flex items-center justify-center text-[#B8874F]">
+        Loading session..... 
+      </div>
+    );
+  }
+    
+  if (!user) {
     return <Navigate to="/" replace />;
   }
 
