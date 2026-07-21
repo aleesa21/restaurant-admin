@@ -269,11 +269,13 @@ function AdminDashboard() {
       .from("menu-images")
       .remove([imgitm.image_path]);
 
-    // A. UPDATE THE UI STATE (Ensuring the specific item receives the new file)
+const previewUrl = URL.createObjectURL(file);
+
+    //  UPDATE THE UI STATE (Ensuring the specific item receives the new file)
     setMenuItems((prev) =>
       prev.map((item) =>
         item.item_id === imgitm.item_id
-          ? { ...item, image_path: file.name }
+          ? { ...item, image_path: file.name,preview_url: previewUrl }
           : item,
       ),
     );
@@ -285,7 +287,7 @@ function AdminDashboard() {
         upsert: true,
       });
 
-    // B. TRACK THE PENDING CHANGES
+    //  TRACK THE PENDING CHANGES
     setPendingChanges((prev) => {
       const updatedItems = [...prev.menu_items];
       const existingChangeIdx = updatedItems.findIndex(
@@ -809,9 +811,10 @@ function AdminDashboard() {
                                         handleImageChange(item, e)
                                       }
                                     />
-                                    {item.image_path ? (
+                                    {item.preview_url || item.image_path ? (
                                       <img
                                         src={
+                                          item.preview_url ||
                                           supabase.storage
                                             .from("menu-images")
                                             .getPublicUrl(item.image_path).data
