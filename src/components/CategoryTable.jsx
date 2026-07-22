@@ -33,6 +33,17 @@ function CategoryTable({
     }
   }, []);
 
+  const scrollToItem = (el, item) => {
+    const isNewItem = item.item_name === "" || item.item_name.trim()==="";
+
+    if (el && isNewItem && !el.dataset.scrolled) {
+      el.dataset.scrolled = true;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      const input = el.querySelector("input[type='text']");
+      if (input) input.focus();
+    }
+  };
+
   return (
     <div
       ref={newCatRef}
@@ -96,8 +107,10 @@ function CategoryTable({
             const isExpanded = expandedItemId === item.item_id;
             return (
               <React.Fragment key={item.item_id}>
-                <tr className="hover:bg-[#B8874F]/6 transition-colors">
-                  {/* Image Cell */}
+                <tr
+                  ref={(el) => scrollToItem(el, item)}
+                  className="hover:bg-[#B8874F]/6 transition-colors"
+                >
                   <td className="py-3 border-t border-[#B8874F]/15">
                     <label
                       className={`w-10 h-10 rounded-lg bg-[#1C1410] border border-dashed flex items-center justify-center text-[#B8874F]/60 text-[10px] cursor-pointer hover:bg-[#B8874F]/10 transition-colors overflow-hidden ${
