@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Trash, Eye, EyeOff, ChevronUp, ChevronDown } from "lucide-react";
+import { X, Trash, Eye, EyeOff, ChevronUp, ChevronDown } from "lucide-react";
 import { supabase } from "../../supabaseClient";
 import AdminHeader from "../../components/AdminHeader";
+import CategoryTable from "../../components/CategoryTable";
 
 let fetcheddata = [];
 function editMenu(payload) {}
@@ -269,13 +270,13 @@ function AdminDashboard() {
       .from("menu-images")
       .remove([imgitm.image_path]);
 
-const previewUrl = URL.createObjectURL(file);
+    const previewUrl = URL.createObjectURL(file);
 
     //  UPDATE THE UI STATE (Ensuring the specific item receives the new file)
     setMenuItems((prev) =>
       prev.map((item) =>
         item.item_id === imgitm.item_id
-          ? { ...item, image_path: file.name,preview_url: previewUrl }
+          ? { ...item, image_path: file.name, preview_url: previewUrl }
           : item,
       ),
     );
@@ -719,429 +720,37 @@ const previewUrl = URL.createObjectURL(file);
       }}
     >
       <div className="w-full p-1  flex flex-col items-center ">
-        <AdminHeader handleRevert={handleRevert} handleSave={handleSave} addCategory={addCategory} />
+        <AdminHeader
+          handleRevert={handleRevert}
+          handleSave={handleSave}
+          addCategory={addCategory}
+        />
 
         <div className="table-content w-full max-w-5xl   p-5 flex flex-col gap-6">
           <div>
-            {categories.map((c) => {
-              return (
-                <div
-                  key={c.category_id}
-                  className="category w-250 p-5 mt-5 rounded-2xl bg-[#18110C] border border-[#B8874F]/30 shadow-md"
-                >
-                  <div className="top flex justify-between items-center mb-4 gap-4 pb-4 border-b border-[#B8874F]/25">
-                    <input
-                      type="text"
-                      name=""
-                      id=""
-                      value={c.category}
-                      placeholder="category"
-                      className={`font-serif font-bold text-lg focus:outline-none bg-transparent py-1 px-2 flex-1 max-w-xs rounded-md transition-colors ${
-                        errors[`cat-${c.category_id}`]
-                          ? "text-red-400 border border-red-500 bg-red-950/20"
-                          : "text-[#EFE6DA] focus:bg-white/3"
-                      }`}
-                      onChange={(e) => {
-                        handleCategoryChange(c.category_id, e.target.value);
-                        setErrors((prev) => ({
-                          ...prev,
-                          [`cat-${c.category_id}`]: false,
-                        }));
-                      }}
-                    />
-                    <div className="flex gap-3 items-center">
-                      <div
-                        className="bg-[#B8874F] hover:bg-[#CE9A5E] text-[#12100D] px-6 py-2.5 rounded-xl text-sm font-semibold tracking-wide capitalize shadow-sm transition-colors cursor-pointer"
-                        onClick={() => {
-                          additem(c.category_id);
-                        }}
-                      >
-                        add item
-                      </div>
-                      <button
-                        type="button"
-                        className="bg-transparent border border-[#B8874F]/40 hover:bg-[#B8874F]/10 text-[#B8874F] px-5 py-2.5 rounded-xl text-sm font-semibold tracking-wide capitalize cursor-pointer transition-colors flex items-center justify-center"
-                        onClick={() => deleteCategory(c.category_id)}
-                      >
-                        Delete Category
-                      </button>
-                    </div>
-                  </div>
-                  <table className="w-full table-fixed">
-                    <thead>
-                      <tr className="text-start border-b border-[#B8874F]/25">
-                        <th className="w-20 text-start pb-2 font-serif font-medium text-sm text-[#B8874F]/75 capitalize">
-                          image
-                        </th>
-                        <th className="text-start pb-2 font-serif font-medium text-sm text-[#B8874F]/75 capitalize">
-                          name
-                        </th>
-                        <th className=" text-start pb-2 pr-4 font-serif font-medium text-sm text-[#B8874F]/75 capitalize">
-                          price
-                        </th>
-                        <th className=" text-end pb-2 pr-12 font-serif font-medium text-sm text-[#B8874F]/75 capitalize">
-                          actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {menuItems
-                        .filter((f) => f.category_id === c.category_id)
-                        .map((item) => {
-                          const isExpanded = expandedItemId === item.item_id;
-                          return (
-                            <React.Fragment key={item.item_id}>
-                              <tr
-                                key={item.item_id}
-                                className="hover:bg-[#B8874F]/6 transition-colors"
-                              >
-                                <td className="py-3 border-t border-[#B8874F]/15">
-                                  <label
-                                    className={`w-10 h-10 rounded-lg bg-[#1C1410] border border-dashed flex items-center justify-center text-[#B8874F]/60 text-[10px] cursor-pointer hover:bg-[#B8874F]/10 transition-colors overflow-hidden ${
-                                      errors[`item-image-${item.item_id}`]
-                                        ? "border-red-500 bg-red-950/30"
-                                        : "border-[#B8874F]/30 hover:border-[#B8874F]/60"
-                                    } ${!item.is_available ? "opacity-40 line-through" : ""}`}
-                                  >
-                                    <input
-                                      type="file"
-                                      accept="image/*"
-                                      className="hidden"
-                                      onChange={(e) =>
-                                        handleImageChange(item, e)
-                                      }
-                                    />
-                                    {item.preview_url || item.image_path ? (
-                                      <img
-                                        src={
-                                          item.preview_url ||
-                                          supabase.storage
-                                            .from("menu-images")
-                                            .getPublicUrl(item.image_path).data
-                                            .publicUrl
-                                        }
-                                        alt="img"
-                                        className="w-full h-full object-cover"
-                                      />
-                                    ) : (
-                                      "img"
-                                    )}
-                                  </label>
-                                </td>
-                                <td className="py-3 border-t border-[#B8874F]/15">
-                                  <input
-                                    type="text"
-                                    placeholder="name"
-                                    className={`bg-transparent text-[#EFE6DA] border-b focus:outline-none py-1 px-1 text-sm w-[90%] rounded transition-colors ${
-                                      errors[`item-name-${item.item_id}`]
-                                        ? "border-red-500 bg-red-950/20"
-                                        : "border-transparent focus:border-[#B8874F]"
-                                    } ${!item.is_available ? "opacity-40 line-through text-[#8C7A6B]" : ""}`}
-                                    value={item.item_name}
-                                    onChange={(e) => {
-                                      handleChange(
-                                        item.item_id,
-                                        "item_name",
-                                        e.target.value,
-                                      );
-                                      setErrors((prev) => ({
-                                        ...prev,
-                                        [`item-name-${item.item_id}`]: false,
-                                      }));
-                                    }}
-                                  />
-                                </td>
-
-                                <td className="py-3 border-t border-[#B8874F]/15 text-start pr-4">
-                                  <input
-                                    type="text"
-                                    placeholder="price"
-                                    value={item.base_price}
-                                    className={`bg-transparent text-[#EFE6DA] border-b focus:outline-none py-1 px-1 text-sm font-medium w-75% transition-colors ${
-                                      errors[`item-price-${item.item_id}`]
-                                        ? "border-red-500 bg-red-950/20 text-red-300"
-                                        : "border-transparent focus:border-[#B8874F]"
-                                    } ${!item.is_available ? "opacity-40 line-through text-[#8C7A6B]" : ""}`}
-                                    onChange={(e) => {
-                                      handleChange(
-                                        item.item_id,
-                                        "base_price",
-                                        e.target.value,
-                                      );
-                                      setErrors((prev) => ({
-                                        ...prev,
-                                        [`item-price-${item.item_id}`]: false,
-                                      }));
-                                    }}
-                                  />
-                                </td>
-
-                                <td className="text-end py-3 border-t border-[#B8874F]/15 pr-2">
-                                  <button
-                                    className="border border-[#B8874F]/30 text-[#B8874F] hover:bg-[#B8874F]/10 hover:border-[#B8874F]/60 p-2.5 mx-1 rounded-lg text-xs font-medium cursor-pointer transition-colors"
-                                    onClick={() =>
-                                      setExpandedItemId(
-                                        isExpanded ? null : item.item_id,
-                                      )
-                                    }
-                                  >
-                                    {isExpanded ? (
-                                      <ChevronUp size={16} strokeWidth={1.5} />
-                                    ) : (
-                                      <ChevronDown
-                                        size={16}
-                                        strokeWidth={1.5}
-                                      />
-                                    )}
-                                  </button>
-                                  <button
-                                    className="border border-[#B8874F]/30 text-[#B8874F] hover:bg-[#B8874F]/10 hover:border-[#B8874F]/60 p-2.5 mx-1 rounded-lg text-xs font-medium cursor-pointer transition-colors"
-                                    onClick={() =>
-                                      handleChange(
-                                        item.item_id,
-                                        "is_available",
-                                        !item.is_available,
-                                      )
-                                    }
-                                  >
-                                    {item.is_available ? (
-                                      <Eye size={16} strokeWidth={1.5} />
-                                    ) : (
-                                      <EyeOff size={16} strokeWidth={1.5} />
-                                    )}
-                                  </button>
-
-                                  <button
-                                    onClick={() => {
-                                      deleteItem(item.item_id, item.image_path);
-                                    }}
-                                    className="border border-[#B8874F]/15 text-[#8C7A6B] hover:text-red-400 hover:border-red-900/50 hover:bg-red-950/20 p-2.5 mx-1 rounded-lg text-xs font-medium cursor-pointer transition-colors"
-                                  >
-                                    <Trash size={16} />
-                                  </button>
-                                </td>
-                              </tr>
-
-                              {isExpanded && (
-                                <tr>
-                                  <td
-                                    colSpan="4"
-                                    className="bg-[#0F0B08] p-5 border-t border-[#B8874F]/25 rounded-xl"
-                                  >
-                                    <div className="flex gap-8 text-[#EFE6DA]">
-                                      {/* VARIANTS COLUMN */}
-                                      <div className="flex-1">
-                                        <div className="flex justify-between items-center mb-3">
-                                          <h4 className="font-serif font-bold text-sm text-[#B8874F]">
-                                            Variants
-                                          </h4>
-                                          <button
-                                            className="text-xs bg-[#B8874F] text-[#12100D] font-semibold px-2.5 py-1 rounded hover:bg-[#CE9A5E] transition-colors"
-                                            onClick={() =>
-                                              addVariant(item.item_id)
-                                            }
-                                          >
-                                            + Add Variant
-                                          </button>
-                                        </div>
-                                        {item.variants.map((v) => (
-                                          <div
-                                            key={v.id}
-                                            className="flex gap-2 mb-2"
-                                          >
-                                            <input
-                                              type="text"
-                                              placeholder="Label (e.g., Large)"
-                                              className={`bg-[#1C1410] text-[#EFE6DA] placeholder-[#8C7A6B] p-2 rounded text-xs w-1/2 border focus:outline-none transition-colors ${
-                                                errors[`variant-label-${v.id}`]
-                                                  ? "border-red-500 bg-red-950/30"
-                                                  : "border-[#B8874F]/25 focus:border-[#B8874F]"
-                                              }`}
-                                              value={v.label}
-                                              onChange={(e) => {
-                                                handleVariantChange(
-                                                  item.item_id,
-                                                  v.id,
-                                                  "label",
-                                                  e.target.value,
-                                                );
-                                                setErrors((prev) => ({
-                                                  ...prev,
-                                                  [`variant-label-${v.id}`]: false,
-                                                }));
-                                              }}
-                                            />
-                                            <input
-                                              type="text"
-                                              placeholder="Price"
-                                              className={`bg-[#1C1410] text-[#EFE6DA] placeholder-[#8C7A6B] p-2 rounded text-xs w-1/2 border focus:outline-none transition-colors ${
-                                                errors[`variant-price-${v.id}`]
-                                                  ? "border-red-500 bg-red-950/30 text-red-300"
-                                                  : "border-[#B8874F]/25 focus:border-[#B8874F]"
-                                              }`}
-                                              value={v.price}
-                                              onChange={(e) => {
-                                                handleVariantChange(
-                                                  item.item_id,
-                                                  v.id,
-                                                  "price",
-                                                  e.target.value,
-                                                );
-                                                setErrors((prev) => ({
-                                                  ...prev,
-                                                  [`variant-price-${v.id}`]: false,
-                                                }));
-                                              }}
-                                            />
-                                            <button
-                                              type="button"
-                                              className="p-2 text-[#8C7A6B] hover:text-red-400 border border-[#B8874F]/25 hover:border-red-900/50 rounded-lg transition-colors cursor-pointer flex items-center justify-center"
-                                              onClick={() =>
-                                                deleteVariant(
-                                                  item.item_id,
-                                                  v.id,
-                                                  "price",
-                                                )
-                                              }
-                                              title="Delete Variant"
-                                            >
-                                              <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                className="h-4 w-4"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                              >
-                                                <path
-                                                  strokeLinecap="round"
-                                                  strokeLinejoin="round"
-                                                  strokeWidth={2}
-                                                  d="M6 18L18 6M6 6l12 12"
-                                                />
-                                              </svg>
-                                            </button>
-                                          </div>
-                                        ))}
-                                      </div>
-
-                                      {/* ADDONS COLUMN */}
-                                      <div className="flex-1">
-                                        <div className="flex justify-between items-center mb-3">
-                                          <h4 className="font-serif font-bold text-sm text-[#B8874F]">
-                                            Addons
-                                          </h4>
-                                          <button
-                                            type="button"
-                                            className="text-xs bg-[#B8874F] text-[#12100D] font-semibold px-2.5 py-1 rounded hover:bg-[#CE9A5E] transition-colors"
-                                            onClick={() =>
-                                              addAddonToItem(item.item_id)
-                                            }
-                                          >
-                                            + Add Addon
-                                          </button>
-                                        </div>
-
-                                        {item.addons &&
-                                        item.addons.length > 0 ? (
-                                          item.addons.map((addon) => (
-                                            <div
-                                              key={addon.id}
-                                              className="flex gap-2 mb-2"
-                                            >
-                                              <input
-                                                type="text"
-                                                placeholder="Name (e.g., Vanilla)"
-                                                className={`bg-[#1C1410] text-[#EFE6DA] placeholder-[#8C7A6B] p-2 rounded text-xs w-1/2 border focus:outline-none transition-colors ${
-                                                  errors[
-                                                    `addon-name-${addon.id}`
-                                                  ]
-                                                    ? "border-red-500 bg-red-950/30"
-                                                    : "border-[#B8874F]/25 focus:border-[#B8874F]"
-                                                }`}
-                                                value={addon.name || ""}
-                                                onChange={(e) => {
-                                                  handleAddonChange(
-                                                    item.item_id,
-                                                    addon.id,
-                                                    "name",
-                                                    e.target.value,
-                                                  );
-                                                  setErrors((prev) => ({
-                                                    ...prev,
-                                                    [`addon-name-${addon.id}`]: false,
-                                                  }));
-                                                }}
-                                              />
-                                              <input
-                                                type="text"
-                                                placeholder="Price"
-                                                className={`bg-[#1C1410] text-[#EFE6DA] placeholder-[#8C7A6B] p-2 rounded text-xs w-1/2 border focus:outline-none transition-colors ${
-                                                  errors[
-                                                    `addon-price-${addon.id}`
-                                                  ]
-                                                    ? "border-red-500 bg-red-950/30 text-red-300"
-                                                    : "border-[#B8874F]/25 focus:border-[#B8874F]"
-                                                }`}
-                                                value={addon.price || ""}
-                                                onChange={(e) => {
-                                                  handleAddonChange(
-                                                    item.item_id,
-                                                    addon.id,
-                                                    "price",
-                                                    e.target.value,
-                                                  );
-                                                  setErrors((prev) => ({
-                                                    ...prev,
-                                                    [`addon-price-${addon.id}`]: false,
-                                                  }));
-                                                }}
-                                              />
-                                              <button
-                                                type="button"
-                                                className="p-2 text-[#8C7A6B] hover:text-red-400 border border-[#B8874F]/25 hover:border-red-900/50 rounded-lg transition-colors cursor-pointer flex items-center justify-center"
-                                                onClick={() =>
-                                                  deleteAddon(
-                                                    item.item_id,
-                                                    addon.id,
-                                                  )
-                                                }
-                                                title="Delete Addon"
-                                              >
-                                                <svg
-                                                  xmlns="http://www.w3.org/2000/svg"
-                                                  className="h-4 w-4"
-                                                  fill="none"
-                                                  viewBox="0 0 24 24"
-                                                  stroke="currentColor"
-                                                >
-                                                  <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M6 18L18 6M6 6l12 12"
-                                                  />
-                                                </svg>
-                                              </button>
-                                            </div>
-                                          ))
-                                        ) : (
-                                          <p className="text-xs text-[#8C7A6B] italic mt-2">
-                                            No addons set for this item.
-                                          </p>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </td>
-                                </tr>
-                              )}
-                            </React.Fragment>
-                          );
-                        })}
-                    </tbody>
-                  </table>
-                </div>
-              );
-            })}
+            {categories.map((c) => (
+              <CategoryTable
+                key={c.category_id}
+                category={c}
+                menuItems={menuItems}
+                errors={errors}
+                expandedItemId={expandedItemId}
+                setExpandedItemId={setExpandedItemId}
+                handleCategoryChange={handleCategoryChange}
+                deleteCategory={deleteCategory}
+                addItem={additem}
+                handleImageChange={handleImageChange}
+                handleChange={handleChange}
+                deleteItem={deleteItem}
+                addVariant={addVariant}
+                handleVariantChange={handleVariantChange}
+                deleteVariant={deleteVariant}
+                addAddonToItem={addAddonToItem}
+                handleAddonChange={handleAddonChange}
+                deleteAddon={deleteAddon}
+                setErrors={setErrors}
+              />
+            ))}
           </div>
         </div>
       </div>
