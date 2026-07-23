@@ -548,6 +548,17 @@ function AdminDashboard() {
 
   //backend lai pathunedata:
   const handleSave = async () => {
+    const hasChanges =
+      pendingChanges.categories.length > 0 ||
+      pendingChanges.menu_items.length > 0 ||
+      pendingChanges.item_variants.length > 0 ||
+      pendingChanges.addons.length > 0 ||
+      pendingChanges.item_addons.length > 0;
+
+    if (!hasChanges) {
+      showAlert("No Changes", "Nothing has been changed to publish.");
+      return;
+    }
     const newErrors = {};
     const errorMessages = [];
 

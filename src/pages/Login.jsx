@@ -54,7 +54,7 @@ function Login() {
       <div className="w-full h-full relative flex items-center justify-center px-6 md:px-16 lg:px-24">
         <img
           className="w-full h-full object-cover absolute inset-0 pointer-events-none"
-          src="https://png.pngtree.com/thumb_back/fh260/background/20231011/pngtree-top-view-flat-lay-roasted-coffee-beans-texture-on-brown-linen-image_13638141.png"
+          src="coffee_beans_bg.png"
           alt="Artisan"
         />
 
