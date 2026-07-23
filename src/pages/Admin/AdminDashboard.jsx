@@ -133,6 +133,7 @@ function AdminDashboard() {
           description: null,
           image_path: null,
           base_price: 0,
+          is_available: true,
         },
       ],
     }));
@@ -712,8 +713,26 @@ function AdminDashboard() {
   };
 
   const handleRevert = async () => {
-    const { data, error } = await supabase.rpc("restore_from_backup");
-    fetchMenuData();
+    try {
+      const { data, error } = await supabase.rpc("restore_from_backup");
+
+      if (error) throw error;
+
+      // Clear any leftover pending changes tracked in UI
+      setPendingChanges({
+        categories: [],
+        menu_items: [],
+        item_variants: [],
+        addons: [],
+        item_addons: [],
+      });
+
+      await fetchMenuData();
+      showAlert("Success", "Successfully reverted to the previous backup!");
+    } catch (err) {
+      console.error("Failed to revert:", err);
+      showAlert("Error", err.message || "Failed to revert changes.");
+    }
   };
 
   console.log("pending item changes", pendingChanges.menu_items);
