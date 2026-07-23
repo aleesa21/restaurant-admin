@@ -17,9 +17,9 @@ function CategoryTable({
   addVariant,
   handleVariantChange,
   deleteVariant,
-  addAddonToItem,
-  handleAddonChange,
-  deleteAddon,
+  globalAddons,
+  linkAddonToItem,
+  unlinkAddonFromItem,
   setErrors,
 }) {
   const newCatRef = useRef(null);
@@ -34,7 +34,7 @@ function CategoryTable({
   }, []);
 
   const scrollToItem = (el, item) => {
-    const isNewItem = item.item_name === "" || item.item_name.trim()==="";
+    const isNewItem = item.item_name === "" || item.item_name.trim() === "";
 
     if (el && isNewItem && !el.dataset.scrolled) {
       el.dataset.scrolled = true;
@@ -321,77 +321,71 @@ function CategoryTable({
                         <div className="flex-1">
                           <div className="flex justify-between items-center mb-3">
                             <h4 className="font-serif font-bold text-sm text-[#B8874F]">
-                              Addons
+                              Linked Addons
                             </h4>
-                            <button
-                              type="button"
-                              className="text-xs bg-[#B8874F] text-[#12100D] font-semibold px-2.5 py-1 rounded hover:bg-[#CE9A5E] transition-colors"
-                              onClick={() => addAddonToItem(item.item_id)}
+
+                            {/* Master Addons Dropdown Selector */}
+                            <select
+                              value=""
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  linkAddonToItem(item.item_id, e.target.value);
+                                }
+                              }}
+                              className="bg-[#1C1410] text-[#EFE6DA] border border-[#B8874F]/30 rounded-lg text-xs py-1 px-2 focus:outline-none focus:border-[#B8874F] transition-colors cursor-pointer"
                             >
-                              + Add Addon
-                            </button>
+                              <option value="" disabled>
+                                + Add existing addon...
+                              </option>
+                              {globalAddons
+                                // Exclude add-ons already linked to this item
+                                ?.filter(
+                                  (gAddon) =>
+                                    !item.addons?.some(
+                                      (a) => a.id === gAddon.id,
+                                    ),
+                                )
+                                .map((gAddon) => (
+                                  <option key={gAddon.id} value={gAddon.id}>
+                                    {gAddon.name} ({gAddon.price})
+                                  </option>
+                                ))}
+                            </select>
                           </div>
+
+                          {/* Currently Linked Addons Display */}
                           {item.addons && item.addons.length > 0 ? (
-                            item.addons.map((addon) => (
-                              <div key={addon.id} className="flex gap-2 mb-2">
-                                <input
-                                  type="text"
-                                  placeholder="Name"
-                                  className={`bg-[#1C1410] text-[#EFE6DA] placeholder-[#8C7A6B] p-2 rounded text-xs w-1/2 border focus:outline-none transition-colors ${
-                                    errors[`addon-name-${addon.id}`]
-                                      ? "border-red-500 bg-red-950/30"
-                                      : "border-[#B8874F]/25 focus:border-[#B8874F]"
-                                  }`}
-                                  value={addon.name || ""}
-                                  onChange={(e) => {
-                                    handleAddonChange(
-                                      item.item_id,
-                                      addon.id,
-                                      "name",
-                                      e.target.value,
-                                    );
-                                    setErrors((prev) => ({
-                                      ...prev,
-                                      [`addon-name-${addon.id}`]: false,
-                                    }));
-                                  }}
-                                />
-                                <input
-                                  type="text"
-                                  placeholder="Price"
-                                  className={`bg-[#1C1410] text-[#EFE6DA] placeholder-[#8C7A6B] p-2 rounded text-xs w-1/2 border focus:outline-none transition-colors ${
-                                    errors[`addon-price-${addon.id}`]
-                                      ? "border-red-500 bg-red-950/30 text-red-300"
-                                      : "border-[#B8874F]/25 focus:border-[#B8874F]"
-                                  }`}
-                                  value={addon.price || ""}
-                                  onChange={(e) => {
-                                    handleAddonChange(
-                                      item.item_id,
-                                      addon.id,
-                                      "price",
-                                      e.target.value,
-                                    );
-                                    setErrors((prev) => ({
-                                      ...prev,
-                                      [`addon-price-${addon.id}`]: false,
-                                    }));
-                                  }}
-                                />
-                                <button
-                                  type="button"
-                                  className="p-2 text-[#8C7A6B] hover:text-red-400 border border-[#B8874F]/25 hover:border-red-900/50 rounded-lg transition-colors cursor-pointer flex items-center justify-center"
-                                  onClick={() =>
-                                    deleteAddon(item.item_id, addon.id)
-                                  }
+                            <div className="flex flex-wrap gap-2">
+                              {item.addons.map((addon) => (
+                                <div
+                                  key={addon.id}
+                                  className="flex items-center gap-2 bg-[#1C1410] border border-[#B8874F]/30 text-[#EFE6DA] px-3 py-1.5 rounded-xl text-xs shadow-sm"
                                 >
-                                  <X size={13} />
-                                </button>
-                              </div>
-                            ))
+                                  <span className="font-medium">
+                                    {addon.name}
+                                  </span>
+                                  <span className="text-[#B8874F]/80 text-[11px]">
+                                    ({addon.price})
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="text-[#8C7A6B] hover:text-red-400 ml-1 transition-colors cursor-pointer"
+                                    onClick={() =>
+                                      unlinkAddonFromItem(
+                                        item.item_id,
+                                        addon.id,
+                                      )
+                                    }
+                                  >
+                                    <X size={13} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
                           ) : (
                             <p className="text-xs text-[#8C7A6B] italic mt-2">
-                              No addons set for this item.
+                              No addons linked to this item. Select one from the
+                              dropdown above.
                             </p>
                           )}
                         </div>

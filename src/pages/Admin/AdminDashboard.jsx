@@ -5,11 +5,11 @@ import AdminHeader from "../../components/AdminHeader";
 import CategoryTable from "../../components/CategoryTable";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import AddonsModal from "../../components/AddonsModal";
 
 dayjs.extend(relativeTime);
 
 let fetcheddata = [];
-
 
 // console.log(category);
 
@@ -20,13 +20,14 @@ function AdminDashboard() {
   const [errors, setErrors] = useState({});
   const [modal, setModal] = useState({ isOpen: false, title: "", message: "" });
   const [updatedDate, setUpdatedDate] = useState(null);
+  const [globalAddons, setGlobalAddons] = useState([]);
+  const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
 
-
-const fetchLastUpdated = async () => {
+  const fetchLastUpdated = async () => {
     const { data, error } = await supabase
       .from("last_update_status")
       .select("last_updated_at")
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("Error fetching update status:", error);
@@ -77,6 +78,13 @@ const fetchLastUpdated = async () => {
       });
     setCategories(categories);
     setMenuItems(items);
+    //added addon fetch
+    const { data: masterAddons, error: addonsErr } = await supabase
+      .from("addons")
+      .select("*");
+
+    if (addonsErr) throw addonsErr;
+    setGlobalAddons(masterAddons || []);
   };
 
   //fetching and seperating categories and items
@@ -449,28 +457,43 @@ const fetchLastUpdated = async () => {
       return { ...prev, item_variants: updatedVariants };
     });
   };
-  //adddon change
-  // A. HANDLE ADDON CHANGE
-  const handleAddonChange = (itemId, addonId, field, value) => {
-    // Update UI (Matches your data structure)
-    setMenuItems((prev) =>
-      prev.map((item) => {
-        if (item.item_id !== itemId) return item;
-        return {
-          ...item,
-          addons: item.addons.map((a) =>
-            a.id === addonId ? { ...a, [field]: value } : a,
-          ),
-        };
-      }),
+
+  const addGlobalAddon = () => {
+    const newAddonId = crypto.randomUUID();
+    const newAddonObj = { id: newAddonId, name: "", price: "" };
+
+    // Update UI State
+    setGlobalAddons((prev) => [...prev, newAddonObj]);
+
+    // Track 'insert'
+    setPendingChanges((prev) => ({
+      ...prev,
+      addons: [
+        ...prev.addons,
+        {
+          action: "insert",
+          id: newAddonId,
+          name: "",
+          price: 0,
+        },
+      ],
+    }));
+  };
+  const handleGlobalAddonChange = (addonId, field, value) => {
+    // A. Update UI State
+    setGlobalAddons((prev) =>
+      prev.map((addon) =>
+        addon.id === addonId ? { ...addon, [field]: value } : addon,
+      ),
     );
 
-    // Track in global pending changes
+    // B. Track pending changes
     setPendingChanges((prev) => {
       const updatedAddons = [...prev.addons];
       const existingIdx = updatedAddons.findIndex((a) => a.id === addonId);
-
       const finalValue = field === "price" ? Number(value) : value;
+
+      // Check if existed in initial fetched database data
       const isNewAddon = !fetcheddata.some((origItem) =>
         origItem.addons?.some((origAddon) => origAddon.id === addonId),
       );
@@ -491,60 +514,19 @@ const fetchLastUpdated = async () => {
       return { ...prev, addons: updatedAddons };
     });
   };
+  const deleteGlobalAddon = (addonId) => {
+    // A. Update Master UI State
+    setGlobalAddons((prev) => prev.filter((a) => a.id !== addonId));
 
-  // B. ADD ADDON TO ITEM
-  const addAddonToItem = (itemId) => {
-    const newAddonId = crypto.randomUUID();
-    const newItemAddonId = crypto.randomUUID();
-
-    // Consistent with database schema using .id
-    const newAddonObj = { id: newAddonId, name: "", price: "" };
-
-    setMenuItems((prev) =>
-      prev.map((item) =>
-        item.item_id === itemId
-          ? { ...item, addons: [...item.addons, newAddonObj] }
-          : item,
-      ),
+    // B. Remove this addon from any item in UI state
+    setMenuItems((prevItems) =>
+      prevItems.map((item) => ({
+        ...item,
+        addons: item.addons ? item.addons.filter((a) => a.id !== addonId) : [],
+      })),
     );
 
-    setPendingChanges((prev) => ({
-      ...prev,
-      addons: [
-        ...prev.addons,
-        {
-          action: "insert",
-          id: newAddonId,
-          name: "",
-          price: 0,
-        },
-      ],
-      item_addons: [
-        ...prev.item_addons,
-        {
-          action: "insert",
-          id: newItemAddonId,
-          item_id: itemId,
-          addon_id: newAddonId,
-        },
-      ],
-    }));
-  };
-
-  // C. DELETE ADDON
-  const deleteAddon = (itemId, addonId) => {
-    // Update UI State
-    setMenuItems((prev) =>
-      prev.map((item) => {
-        if (item.item_id !== itemId) return item;
-        return {
-          ...item,
-          addons: item.addons.filter((a) => a.id !== addonId),
-        };
-      }),
-    );
-
-    // Update Tracking Log
+    // C. Track deletion
     setPendingChanges((prev) => {
       const isNewAddon = !fetcheddata.some((origItem) =>
         origItem.addons?.some((origAddon) => origAddon.id === addonId),
@@ -567,6 +549,72 @@ const fetchLastUpdated = async () => {
         addons: updatedAddons,
         item_addons: updatedItemAddons,
       };
+    });
+  };
+  const linkAddonToItem = (itemId, addonId) => {
+    const selectedAddon = globalAddons.find((a) => a.id === addonId);
+    if (!selectedAddon) return;
+
+    // A. Update menuItems UI state
+    setMenuItems((prev) =>
+      prev.map((item) => {
+        if (item.item_id !== itemId) return item;
+        const exists = item.addons?.some((a) => a.id === addonId);
+        if (exists) return item;
+        return {
+          ...item,
+          addons: [...(item.addons || []), selectedAddon],
+        };
+      }),
+    );
+
+    // B. Track 'insert' in item_addons
+    setPendingChanges((prev) => ({
+      ...prev,
+      item_addons: [
+        ...prev.item_addons,
+        {
+          action: "insert",
+          id: crypto.randomUUID(),
+          item_id: itemId,
+          addon_id: addonId,
+        },
+      ],
+    }));
+  };
+  const unlinkAddonFromItem = (itemId, addonId) => {
+    // A. Update menuItems UI state
+    setMenuItems((prev) =>
+      prev.map((item) => {
+        if (item.item_id !== itemId) return item;
+        return {
+          ...item,
+          addons: item.addons.filter((a) => a.id !== addonId),
+        };
+      }),
+    );
+
+    // B. Track 'delete' in item_addons
+    setPendingChanges((prev) => {
+      let updatedItemAddons = prev.item_addons.filter(
+        (ia) => !(ia.item_id === itemId && ia.addon_id === addonId),
+      );
+
+      // If it existed in original database, explicitly push a delete action
+      const existedInDb = fetcheddata.some(
+        (orig) =>
+          orig.item_id === itemId && orig.addons?.some((a) => a.id === addonId),
+      );
+
+      if (existedInDb) {
+        updatedItemAddons.push({
+          action: "delete",
+          item_id: itemId,
+          addon_id: addonId,
+        });
+      }
+
+      return { ...prev, item_addons: updatedItemAddons };
     });
   };
 
@@ -661,32 +709,27 @@ const fetchLastUpdated = async () => {
         });
       }
 
-      // Check Nested Addons
-      if (item.addons && item.addons.length > 0) {
-        item.addons.forEach((a) => {
-          // Addon Name Check
-          if (!a.name || !a.name.trim()) {
-            newErrors[`addon-name-${a.id}`] = true;
-            errorMessages.push(
-              `Addon name cannot be empty in "${item.item_name || "Item"}".`,
-            );
-          }
+      // Validate Global Addons
+globalAddons.forEach((addon) => {
+  if (!addon.name || !addon.name.trim()) {
+    newErrors[`global-addon-name-${addon.id}`] = true;
+    errorMessages.push("Global addon name cannot be empty.");
+  }
 
-          // Addon Price Check
-          const addonPrice = Number(a.price);
-          if (
-            a.price === "" ||
-            a.price === null ||
-            isNaN(addonPrice) ||
-            addonPrice < 0
-          ) {
-            newErrors[`addon-price-${a.id}`] = true;
-            errorMessages.push(
-              `Addon price for "${a.name || "Addon"}" must be a valid number.`,
-            );
-          }
-        });
-      }
+  const addonPrice = Number(addon.price);
+  if (
+    addon.price === "" ||
+    addon.price === null ||
+    isNaN(addonPrice) ||
+    addonPrice < 0
+  ) {
+    newErrors[`global-addon-price-${addon.id}`] = true;
+    errorMessages.push(
+      `Price for global addon "${addon.name || "Addon"}" must be a valid number.`
+    );
+  }
+});
+
     });
 
     if (Object.keys(newErrors).length > 0) {
@@ -760,11 +803,11 @@ const fetchLastUpdated = async () => {
     }
   };
 
-  // console.log("pending item changes", pendingChanges.menu_items);
-  // console.log("pending category changes", pendingChanges.categories);
-  // console.log("pending variants changes", pendingChanges.item_variants);
-  // console.log("main addons changes", pendingChanges.addons);
-  // console.log("new addons changes:", pendingChanges.item_addons);
+  console.log("pending item changes", pendingChanges.menu_items);
+  console.log("pending category changes", pendingChanges.categories);
+  console.log("pending variants changes", pendingChanges.item_variants);
+  console.log("main addons changes", pendingChanges.addons);
+  console.log("new addons changes:", pendingChanges.item_addons);
 
   return (
     <section
@@ -780,6 +823,7 @@ const fetchLastUpdated = async () => {
           handleSave={handleSave}
           addCategory={addCategory}
           updatedDate={updatedDate}
+          onOpenAddonsModal={() => setIsAddonModalOpen(true)}
         />
 
         <div className="table-content w-full max-w-5xl   p-5 flex flex-col gap-6">
@@ -801,9 +845,9 @@ const fetchLastUpdated = async () => {
                 addVariant={addVariant}
                 handleVariantChange={handleVariantChange}
                 deleteVariant={deleteVariant}
-                addAddonToItem={addAddonToItem}
-                handleAddonChange={handleAddonChange}
-                deleteAddon={deleteAddon}
+                globalAddons={globalAddons}
+                linkAddonToItem={linkAddonToItem}
+                unlinkAddonFromItem={unlinkAddonFromItem}
                 setErrors={setErrors}
               />
             ))}
@@ -832,6 +876,16 @@ const fetchLastUpdated = async () => {
           </div>
         </div>
       )}
+      <AddonsModal
+        isOpen={isAddonModalOpen}
+        onClose={() => setIsAddonModalOpen(false)}
+        globalAddons={globalAddons}
+        addGlobalAddon={addGlobalAddon}
+        handleGlobalAddonChange={handleGlobalAddonChange}
+        deleteGlobalAddon={deleteGlobalAddon}
+        errors={errors}
+        setErrors={setErrors}
+      />
     </section>
   );
 }

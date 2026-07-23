@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router";
 import ManageUsersModal from "./ManageUsersModal";
 
-function AdminHeader({ handleRevert, handleSave, addCategory, updatedDate }) {
+function AdminHeader({ handleRevert, handleSave, addCategory, updatedDate,onOpenAddonsModal }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { user, isSuperAdmin, logout } = useAuth();
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -38,6 +38,11 @@ function AdminHeader({ handleRevert, handleSave, addCategory, updatedDate }) {
         </div>
         <div className="flex justify-center items-center gap-6">
           <div className="m-h-btns flex gap-3">
+            <button 
+            onClick={onOpenAddonsModal}
+            className="bg-transparent border border-[#B8874F]/40 hover:bg-[#B8874F]/10 text-[#B8874F] px-5 py-2.5 rounded-xl text-sm font-semibold tracking-wide capitalize cursor-pointer transition-colors flex items-center justify-center">
+              addons
+            </button>
             <button
               className="bg-transparent border border-[#B8874F]/40 hover:bg-[#B8874F]/10 text-[#B8874F] px-5 py-2.5 rounded-xl text-sm font-semibold tracking-wide capitalize cursor-pointer transition-colors flex items-center justify-center"
               onClick={addCategory}
@@ -107,10 +112,12 @@ function AdminHeader({ handleRevert, handleSave, addCategory, updatedDate }) {
           </div>
         </div>
       </header>
-      <ManageUsersModal
-        isOpen={isUserModalOpen}
-        onClose={() => setIsUserModalOpen(false)}
-      />
+      {isUserModalOpen && (
+        <ManageUsersModal
+          isOpen={isUserModalOpen}
+          onClose={() => setIsUserModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
