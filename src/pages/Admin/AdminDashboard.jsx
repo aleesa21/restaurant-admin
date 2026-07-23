@@ -3,9 +3,13 @@ import { X, Trash, Eye, EyeOff, ChevronUp, ChevronDown } from "lucide-react";
 import { supabase } from "../../supabaseClient";
 import AdminHeader from "../../components/AdminHeader";
 import CategoryTable from "../../components/CategoryTable";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+
+dayjs.extend(relativeTime);
 
 let fetcheddata = [];
-function editMenu(payload) {}
+
 
 // console.log(category);
 
@@ -15,6 +19,24 @@ function AdminDashboard() {
   const [expandedItemId, setExpandedItemId] = useState(null);
   const [errors, setErrors] = useState({});
   const [modal, setModal] = useState({ isOpen: false, title: "", message: "" });
+  const [updatedDate, setUpdatedDate] = useState(null);
+
+
+const fetchLastUpdated = async () => {
+    const { data, error } = await supabase
+      .from("last_update_status")
+      .select("last_updated_at")
+      .single();
+
+    if (error) {
+      console.error("Error fetching update status:", error);
+      return;
+    }
+
+    if (data?.last_updated_at) {
+      setUpdatedDate(dayjs(data.last_updated_at).fromNow());
+    }
+  };
 
   const showAlert = (title, message) => {
     setModal({ isOpen: true, title, message });
@@ -60,6 +82,7 @@ function AdminDashboard() {
   //fetching and seperating categories and items
   useEffect(() => {
     fetchMenuData();
+    fetchLastUpdated();
   }, []);
 
   console.log("menuitems ui ko:", menuItems);
@@ -705,6 +728,7 @@ function AdminDashboard() {
       });
 
       await fetchMenuData();
+      await fetchLastUpdated();
       showAlert("Success", "Changes published successfully!");
     } catch (err) {
       console.error("Failed to save:", err);
@@ -728,6 +752,7 @@ function AdminDashboard() {
       });
 
       await fetchMenuData();
+      await fetchLastUpdated();
       showAlert("Success", "Successfully reverted to the previous backup!");
     } catch (err) {
       console.error("Failed to revert:", err);
@@ -735,11 +760,11 @@ function AdminDashboard() {
     }
   };
 
-  console.log("pending item changes", pendingChanges.menu_items);
-  console.log("pending category changes", pendingChanges.categories);
-  console.log("pending variants changes", pendingChanges.item_variants);
-  console.log("main addons changes", pendingChanges.addons);
-  console.log("new addons changes:", pendingChanges.item_addons);
+  // console.log("pending item changes", pendingChanges.menu_items);
+  // console.log("pending category changes", pendingChanges.categories);
+  // console.log("pending variants changes", pendingChanges.item_variants);
+  // console.log("main addons changes", pendingChanges.addons);
+  // console.log("new addons changes:", pendingChanges.item_addons);
 
   return (
     <section
@@ -754,6 +779,7 @@ function AdminDashboard() {
           handleRevert={handleRevert}
           handleSave={handleSave}
           addCategory={addCategory}
+          updatedDate={updatedDate}
         />
 
         <div className="table-content w-full max-w-5xl   p-5 flex flex-col gap-6">

@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router";
 import ManageUsersModal from "./ManageUsersModal";
 
-function AdminHeader({ handleRevert, handleSave, addCategory }) {
+function AdminHeader({ handleRevert, handleSave, addCategory, updatedDate }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { user, isSuperAdmin, logout } = useAuth();
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -33,7 +33,7 @@ function AdminHeader({ handleRevert, handleSave, addCategory }) {
             Menu Dashboard
           </h1>
           <p className="text-xs font-medium text-[#B8874F]/75 mt-1 tracking-wider uppercase">
-            Last published 2 hours ago
+            Last published {updatedDate}
           </p>
         </div>
         <div className="flex justify-center items-center gap-6">
