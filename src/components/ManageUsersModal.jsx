@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { supabase } from "../supabaseClient";
 import {
   X,
   UserRoundPlus,
@@ -28,6 +29,73 @@ function ManageUsersModal({ isOpen, onClose }) {
   const [formvalues, setFormvalues] = useState(initialValues);
   const [formerrors, setFormerrors] = useState(initialErrors);
   const [loading, setLoading] = useState(false);
+  const [fetchedData, setFetchedData] = useState();
+
+  const fetchAdmins = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-admins", {
+        body: { action: "list" },
+      });
+
+      if (error) throw error;
+      setFetchedData(data.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    fetchAdmins();
+  }, []);
+
+  const deleteAdmin = async (user_id) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-admins", {
+        body: {
+          action: "delete",
+          target_user_id: user_id,
+        },
+      });
+
+      if (error) throw error;
+      await fetchAdmins();
+      alert("user deleted sucessfully");
+    } catch (error) {
+      console.log("delete failed", error);
+    }
+    console.log("im deleted", user_id);
+  };
+
+  const AddNewUser = async (e, p, r) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-admins", {
+        body: {
+          action: "create",
+          email: e,
+          password: p,
+          role: r,
+        },
+      });
+
+      if (error) {
+        console.error("Supabase function error:", error);
+        alert("Failed to create user: " + error.message);
+        return;
+      }
+
+      console.log("New user created successfully:", data);
+      setFormerrors(initialErrors);
+      await fetchAdmins();
+      setFormvalues(initialValues);
+      alert("Form submitted successfully!");
+    } catch (err) {
+      console.error("Network or unexpected error:", err);
+      alert("An unexpected error occurred.");
+    } finally {
+      // Always stop loading whether it succeeded or failed
+      setLoading(false);
+    }
+  };
 
   const handleUserValidate = (e) => {
     e.preventDefault();
@@ -56,11 +124,8 @@ function ManageUsersModal({ isOpen, onClose }) {
 
     if (isValid) {
       setLoading(true);
-      console.log("Form values:", formvalues);
-      alert("Form submitted successfully!");
-      setFormvalues(initialValues);
-      setFormerrors(initialErrors);
-      setLoading(false);
+
+      AddNewUser(formvalues.email, formvalues.password, formvalues.role);
     } else {
       console.log("Validation errors:", errors);
     }
@@ -78,6 +143,8 @@ function ManageUsersModal({ isOpen, onClose }) {
     onClose();
   };
   if (!isOpen) return null;
+
+  console.log(fetchedData);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in">
       <div className="w-full max-w-2xl bg-[#18110C] border border-[#B8874F]/40 rounded-2xl shadow-2xl p-6 text-[#EFE6DA] relative max-h-[90vh] overflow-y-auto">
@@ -166,7 +233,6 @@ function ManageUsersModal({ isOpen, onClose }) {
                     </option>
                   </select>
 
-                  {/* Custom Dropdown Chevron Icon */}
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#B8874F]/60 text-[10px]">
                     ▼
                   </div>
@@ -234,31 +300,46 @@ function ManageUsersModal({ isOpen, onClose }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full text-center content-center cursor-pointer bg-[#B8874F] hover:bg-[#CE9A5E] px-5 py-2 rounded-md text-sm font-bold text-[#12100D] shadow-md transition-colors tracking-wide uppercase"
+              className="w-full text-center content-center bg-[#B8874F] hover:bg-[#CE9A5E] px-5 py-2 rounded-md text-sm font-bold text-[#12100D] shadow-md transition-colors tracking-wide uppercase disabled:bg-gray-400 disabled:text-gray-600 disabled:cursor-not-allowed disabled:hover:bg-gray-400"
             >
               {loading ? "Creating..." : "create user account"}
             </button>
           </form>
         </div>
         <div className="user-table ">
-          <h3 className="uppercase font-semibold mb-3 text-[#B8874F]">
-            existing accounts (0)
+          <h3 className="uppercase font-semibold mb-3 text-[#B8874F] flex gap-2 items-center">
+            existing accounts
+            <span>({fetchedData?.length})</span>
           </h3>
 
           <div className="space-y-2">
-            <div className="flex justify-between items-center p-3 bg-[#120D09] border border-[#B8874F]/20 rounded-lg hover:border-[#B8874F]/40 transition-colors">
-              <div>
-                <p className="text-sm font-semibold text-[#EFE6DA]">email</p>
-                <p className="text-[10px] text-[#B8874F]/75">Role: "Admin"</p>
-              </div>
+            {fetchedData.map((d) => {
+              return (
+                <div
+                  key={d.user_id}
+                  className="flex justify-between items-center p-3 bg-[#120D09] border border-[#B8874F]/20 rounded-lg hover:border-[#B8874F]/40 transition-colors"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-[#EFE6DA]">
+                      {d.email}
+                    </p>
+                    <p className="text-[10px] text-[#B8874F]/75">
+                      Role: {d.role}
+                    </p>
+                  </div>
 
-              <button
-                className="text-red-400 hover:text-red-300 hover:bg-red-500/10 p-2 rounded-lg transition-colors cursor-pointer"
-                title="Delete User"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
+                  <button
+                    onClick={() => {
+                      deleteAdmin(d.user_id);
+                    }}
+                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10 p-2 rounded-lg transition-colors cursor-pointer"
+                    title="Delete User"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
