@@ -267,9 +267,10 @@ function ManageUsersModal({ isOpen, onClose }) {
             </button>
           </div>
         )}
-        <div 
-        ref={formRef}
-        className="new-admin-form border mb-4 border-[#B8874F]/40 bg-[#0F0B08] rounded-xl p-5">
+        <div
+          ref={formRef}
+          className="new-admin-form border mb-4 border-[#B8874F]/40 bg-[#0F0B08] rounded-xl p-5"
+        >
           <div className="flex justify-between items-center text-[#B8874F] font-semibold">
             <div className="flex items-center gap-2">
               <UserRoundPlus size={16} />
