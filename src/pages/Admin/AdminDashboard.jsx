@@ -234,6 +234,7 @@ function AdminDashboard() {
     const newCategory = {
       category_id: newCatId,
       category: "New Category",
+      isNew: true,
     };
     // Update UI
     setCategories((prev) => [...prev, newCategory]);
@@ -710,26 +711,25 @@ function AdminDashboard() {
       }
 
       // Validate Global Addons
-globalAddons.forEach((addon) => {
-  if (!addon.name || !addon.name.trim()) {
-    newErrors[`global-addon-name-${addon.id}`] = true;
-    errorMessages.push("Global addon name cannot be empty.");
-  }
+      globalAddons.forEach((addon) => {
+        if (!addon.name || !addon.name.trim()) {
+          newErrors[`global-addon-name-${addon.id}`] = true;
+          errorMessages.push("Global addon name cannot be empty.");
+        }
 
-  const addonPrice = Number(addon.price);
-  if (
-    addon.price === "" ||
-    addon.price === null ||
-    isNaN(addonPrice) ||
-    addonPrice < 0
-  ) {
-    newErrors[`global-addon-price-${addon.id}`] = true;
-    errorMessages.push(
-      `Price for global addon "${addon.name || "Addon"}" must be a valid number.`
-    );
-  }
-});
-
+        const addonPrice = Number(addon.price);
+        if (
+          addon.price === "" ||
+          addon.price === null ||
+          isNaN(addonPrice) ||
+          addonPrice < 0
+        ) {
+          newErrors[`global-addon-price-${addon.id}`] = true;
+          errorMessages.push(
+            `Price for global addon "${addon.name || "Addon"}" must be a valid number.`,
+          );
+        }
+      });
     });
 
     if (Object.keys(newErrors).length > 0) {

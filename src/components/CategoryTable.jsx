@@ -26,12 +26,14 @@ function CategoryTable({
   const categoryItems = menuItems.filter(
     (item) => item.category_id === category.category_id,
   );
-
-  useEffect(() => {
-    if (category.category === "New Category" && newCatRef.current) {
-      newCatRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, []);
+useEffect(() => {
+  if (category.isNew && newCatRef.current) {
+    newCatRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    
+    const input = newCatRef.current.querySelector("input[type='text']");
+    if (input) input.focus();
+  }
+}, []);
 
   const scrollToItem = (el, item) => {
     const isNewItem = item.item_name === "" || item.item_name.trim() === "";
