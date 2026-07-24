@@ -34,6 +34,11 @@ function ManageUsersModal({ isOpen, onClose }) {
   const [fetchedData, setFetchedData] = useState();
   const [edited, setEdited] = useState(false);
   const [fetching, setFetching] = useState(false);
+  const [toast, setToast] = useState({
+    show: false,
+    message: "",
+    type: "success",
+  });
 
   if (!isOpen) return null;
   const fetchAdmins = async () => {
@@ -61,15 +66,18 @@ function ManageUsersModal({ isOpen, onClose }) {
       const { data, error } = await supabase.functions.invoke("manage-admins", {
         body: {
           action: "delete",
-          user_id: user_id,
+          target_user_id: user_id,
         },
       });
 
       if (error) throw error;
       await fetchAdmins();
-      alert("user deleted sucessfully");
+      showToast("User deleted successfully!", "success");
     } catch (error) {
-      console.log("delete failed", error);
+      showToast(
+        `Failed to delete user: ${error.message || "Something went wrong"}`,
+        "error",
+      );
     }
     console.log("im deleted", user_id);
   };
@@ -85,22 +93,20 @@ function ManageUsersModal({ isOpen, onClose }) {
         },
       });
 
-      if (error) {
-        console.error("Supabase function error:", error);
-        alert("Failed to create user: " + error.message);
-        return;
-      }
+      if (error) throw error;
 
       console.log("New user created successfully:", data);
       setFormerrors(initialErrors);
       await fetchAdmins();
       setFormvalues(initialValues);
-      alert("Form submitted successfully!");
+      showToast("User account created successfully!", "success");
     } catch (err) {
-      console.error("Network or unexpected error:", err);
-      alert("An unexpected error occurred.");
+      console.error("Error creating user:", err);
+      showToast(
+        `Failed to create user: ${err.message || "An unexpected error occurred."}`,
+        "error",
+      );
     } finally {
-      // Always stop loading whether it succeeded or failed
       setLoading(false);
     }
   };
@@ -205,17 +211,23 @@ function ManageUsersModal({ isOpen, onClose }) {
 
       if (error) throw error;
 
-      alert("User updated successfully!");
-
+      showToast("User updated successfully!", "success");
       await fetchAdmins();
       setFormvalues(initialValues);
       setEdited(false);
     } catch (error) {
       console.error("Update failed:", error);
-      alert("Failed to update user: " + error.message);
+      showToast(`Failed to update user: ${error.message}`, "error");
     } finally {
       setLoading(false);
     }
+  };
+
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: "", type: "success" });
+    }, 3000);
   };
 
   console.log(fetchedData);
@@ -236,6 +248,23 @@ function ManageUsersModal({ isOpen, onClose }) {
             <X size={20} />
           </button>
         </div>
+        {toast.show && (
+          <div
+            className={`mb-4 p-3 rounded-lg text-sm font-medium flex items-center justify-between border ${
+              toast.type === "error"
+                ? "bg-red-950/50 border-red-500/40 text-red-200"
+                : "bg-emerald-950/50 border-emerald-500/40 text-emerald-200"
+            }`}
+          >
+            <span>{toast.message}</span>
+            <button
+              onClick={() => setToast({ ...toast, show: false })}
+              className="text-xs opacity-70 hover:opacity-100 ml-2"
+            >
+              ✕
+            </button>
+          </div>
+        )}
         <div className="new-admin-form border mb-4 border-[#B8874F]/40 bg-[#0F0B08] rounded-xl p-5">
           <div className="flex justify-between items-center text-[#B8874F] font-semibold">
             <div className="flex items-center gap-2">
