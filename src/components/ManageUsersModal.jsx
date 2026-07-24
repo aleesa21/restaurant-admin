@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "../supabaseClient";
 import {
   X,
@@ -39,6 +39,7 @@ function ManageUsersModal({ isOpen, onClose }) {
     message: "",
     type: "success",
   });
+  const formRef = useRef(null);
 
   if (!isOpen) return null;
   const fetchAdmins = async () => {
@@ -188,6 +189,7 @@ function ManageUsersModal({ isOpen, onClose }) {
       cpassword: "",
     });
     setEdited(true);
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const updateAdmin = async (userId, email, role, password) => {
@@ -265,7 +267,9 @@ function ManageUsersModal({ isOpen, onClose }) {
             </button>
           </div>
         )}
-        <div className="new-admin-form border mb-4 border-[#B8874F]/40 bg-[#0F0B08] rounded-xl p-5">
+        <div 
+        ref={formRef}
+        className="new-admin-form border mb-4 border-[#B8874F]/40 bg-[#0F0B08] rounded-xl p-5">
           <div className="flex justify-between items-center text-[#B8874F] font-semibold">
             <div className="flex items-center gap-2">
               <UserRoundPlus size={16} />
