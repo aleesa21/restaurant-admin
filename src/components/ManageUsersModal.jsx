@@ -9,9 +9,11 @@ import {
   UserRoundKey,
   LockKeyholeOpen,
   Trash2,
+  UserPen,
 } from "lucide-react";
 
 const initialValues = {
+  user_id: null,
   email: "",
   password: "",
   role: "",
@@ -30,9 +32,13 @@ function ManageUsersModal({ isOpen, onClose }) {
   const [formerrors, setFormerrors] = useState(initialErrors);
   const [loading, setLoading] = useState(false);
   const [fetchedData, setFetchedData] = useState();
+  const [edited, setEdited] = useState(false);
+  const [fetching, setFetching] = useState(false);
 
+  if (!isOpen) return null;
   const fetchAdmins = async () => {
     try {
+      setFetching(true);
       const { data, error } = await supabase.functions.invoke("manage-admins", {
         body: { action: "list" },
       });
@@ -41,6 +47,8 @@ function ManageUsersModal({ isOpen, onClose }) {
       setFetchedData(data.data);
     } catch (error) {
       console.log(error);
+    } finally {
+      setFetching(false);
     }
   };
 
@@ -53,7 +61,7 @@ function ManageUsersModal({ isOpen, onClose }) {
       const { data, error } = await supabase.functions.invoke("manage-admins", {
         body: {
           action: "delete",
-          target_user_id: user_id,
+          user_id: user_id,
         },
       });
 
@@ -70,7 +78,7 @@ function ManageUsersModal({ isOpen, onClose }) {
     try {
       const { data, error } = await supabase.functions.invoke("manage-admins", {
         body: {
-          action: "create",
+          action: "insert",
           email: e,
           password: p,
           role: r,
@@ -107,15 +115,28 @@ function ManageUsersModal({ isOpen, onClose }) {
     if (!formvalues.role) {
       errors.e_role = "Please select a Role";
     }
-    if (!formvalues.password) {
-      errors.e_password = "Password cannot be empty";
-    } else if (formvalues.password.length < 6) {
-      errors.e_password = "Password must be atleast 6 characters";
-    }
-    if (!formvalues.cpassword) {
-      errors.e_cpassword = "Confirm password cannot be empty";
-    } else if (formvalues.password !== formvalues.cpassword) {
-      errors.e_cpassword = "Passwords do not match";
+    if (!edited) {
+      // Required when creating a new user
+      if (!formvalues.password) {
+        errors.e_password = "Password cannot be empty";
+      } else if (formvalues.password.length < 6) {
+        errors.e_password = "Password must be at least 6 characters";
+      }
+
+      if (!formvalues.cpassword) {
+        errors.e_cpassword = "Confirm password cannot be empty";
+      } else if (formvalues.password !== formvalues.cpassword) {
+        errors.e_cpassword = "Passwords do not match";
+      }
+    } else {
+      if (formvalues.password) {
+        if (formvalues.password.length < 6) {
+          errors.e_password = "Password must be at least 6 characters";
+        }
+        if (formvalues.password !== formvalues.cpassword) {
+          errors.e_cpassword = "Passwords do not match";
+        }
+      }
     }
 
     setFormerrors(errors);
@@ -123,9 +144,18 @@ function ManageUsersModal({ isOpen, onClose }) {
     const isValid = Object.keys(errors).length === 0;
 
     if (isValid) {
-      setLoading(true);
+      if (edited) {
+        updateAdmin(
+          formvalues.user_id,
+          formvalues.email,
+          formvalues.role,
+          formvalues.password,
+        );
+      } else {
+        setLoading(true);
 
-      AddNewUser(formvalues.email, formvalues.password, formvalues.role);
+        AddNewUser(formvalues.email, formvalues.password, formvalues.role);
+      }
     } else {
       console.log("Validation errors:", errors);
     }
@@ -142,11 +172,55 @@ function ManageUsersModal({ isOpen, onClose }) {
     setFormerrors(initialErrors);
     onClose();
   };
-  if (!isOpen) return null;
+
+  const editAdmin = (d) => {
+    setFormvalues({
+      user_id: d.user_id,
+      email: d.email || "",
+      role: d.role || "",
+      password: "",
+      cpassword: "",
+    });
+    setEdited(true);
+  };
+
+  const updateAdmin = async (userId, email, role, password) => {
+    try {
+      setLoading(true);
+
+      const bodyPayload = {
+        action: "update",
+        target_user_id: userId,
+        email: email,
+        role: role,
+      };
+
+      if (password) {
+        bodyPayload.password = password;
+      }
+
+      const { data, error } = await supabase.functions.invoke("manage-admins", {
+        body: bodyPayload,
+      });
+
+      if (error) throw error;
+
+      alert("User updated successfully!");
+
+      await fetchAdmins();
+      setFormvalues(initialValues);
+      setEdited(false);
+    } catch (error) {
+      console.error("Update failed:", error);
+      alert("Failed to update user: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   console.log(fetchedData);
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in ">
       <div className="w-full max-w-2xl bg-[#18110C] border border-[#B8874F]/40 rounded-2xl shadow-2xl p-6 text-[#EFE6DA] relative max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center pb-4 mb-6 border-b border-[#B8874F]/20">
           <div className="flex items-center gap-2">
@@ -163,10 +237,26 @@ function ManageUsersModal({ isOpen, onClose }) {
           </button>
         </div>
         <div className="new-admin-form border mb-4 border-[#B8874F]/40 bg-[#0F0B08] rounded-xl p-5">
-          <div className=" flex items-center  gap-2 text-[#B8874F] font-semibold">
-            <UserRoundPlus size={16} />
-
-            <h2 className="uppercase">add new admin / users</h2>
+          <div className="flex justify-between items-center text-[#B8874F] font-semibold">
+            <div className="flex items-center gap-2">
+              <UserRoundPlus size={16} />
+              <h2 className="uppercase">
+                {edited ? "Edit Admin / User" : "Add New Admin / User"}
+              </h2>
+            </div>
+            {edited && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFormvalues(initialValues);
+                  setFormerrors(initialErrors);
+                  setEdited(false);
+                }}
+                className="text-xs text-red-400 hover:underline cursor-pointer"
+              >
+                Cancel Edit
+              </button>
+            )}
           </div>
           <form onSubmit={handleUserValidate}>
             <div className="grid grid-cols-2 my-4 gap-3">
@@ -302,19 +392,33 @@ function ManageUsersModal({ isOpen, onClose }) {
               disabled={loading}
               className="w-full text-center content-center bg-[#B8874F] hover:bg-[#CE9A5E] px-5 py-2 rounded-md text-sm font-bold text-[#12100D] shadow-md transition-colors tracking-wide uppercase disabled:bg-gray-400 disabled:text-gray-600 disabled:cursor-not-allowed disabled:hover:bg-gray-400"
             >
-              {loading ? "Creating..." : "create user account"}
+              {loading
+                ? edited
+                  ? "Updating..."
+                  : "Creating..."
+                : edited
+                  ? "Update User Account"
+                  : "Create User Account"}
             </button>
           </form>
         </div>
-        <div className="user-table ">
+        <div className="user-table">
           <h3 className="uppercase font-semibold mb-3 text-[#B8874F] flex gap-2 items-center">
             existing accounts
-            <span>({fetchedData?.length})</span>
+            <span>({fetchedData?.length || 0})</span>
           </h3>
 
-          <div className="space-y-2">
-            {fetchedData.map((d) => {
-              return (
+          <div className="space-y-2 scroll-auto">
+            {fetching ? (
+              <div className="p-4 text-center text-sm text-[#EFE6DA]/60">
+                Loading admin accounts...
+              </div>
+            ) : fetchedData?.length === 0 ? (
+              <div className="p-4 text-center text-sm text-[#EFE6DA]/60">
+                No accounts found.
+              </div>
+            ) : (
+              fetchedData?.map((d) => (
                 <div
                   key={d.user_id}
                   className="flex justify-between items-center p-3 bg-[#120D09] border border-[#B8874F]/20 rounded-lg hover:border-[#B8874F]/40 transition-colors"
@@ -328,18 +432,26 @@ function ManageUsersModal({ isOpen, onClose }) {
                     </p>
                   </div>
 
-                  <button
-                    onClick={() => {
-                      deleteAdmin(d.user_id);
-                    }}
-                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10 p-2 rounded-lg transition-colors cursor-pointer"
-                    title="Delete User"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  <div>
+                    <button
+                      onClick={() => editAdmin(d)}
+                      className="text-gray-400 hover:text-blue-300 hover:bg-blue-500/10 p-2 rounded-lg transition-colors cursor-pointer"
+                      title="Edit User"
+                    >
+                      <UserPen size={16} />
+                    </button>
+
+                    <button
+                      onClick={() => deleteAdmin(d.user_id)}
+                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10 p-2 rounded-lg transition-colors cursor-pointer"
+                      title="Delete User"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
-              );
-            })}
+              ))
+            )}
           </div>
         </div>
       </div>
